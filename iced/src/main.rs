@@ -14,16 +14,18 @@ use std::{
 };
 
 use iced::{
-    Alignment, Border, Color, Element, Length, Padding, Shadow, Size, Subscription, Task, Theme,
+    Alignment, Border, Color, Element, Font, Length, Padding, Size, Subscription, Task, Theme,
     alignment::{Horizontal, Vertical},
-    clipboard,
+    clipboard, font,
     futures::{StreamExt, stream},
     mouse::Interaction,
     task::sipper,
     widget::{
         Button, Column, Container, MouseArea, Row, Scrollable, Stack, Svg, Text, button, checkbox,
         container::{self, background},
-        row, scrollable, svg, text, tooltip,
+        row, scrollable, svg,
+        text::{self, Rich, Span},
+        tooltip,
     },
     window::{self, Position, Settings},
 };
@@ -123,7 +125,7 @@ struct MainState {
 
 struct FileState {
     name: Arc<Path>,
-    hovered: HoverState,
+    hovered: bool,
 }
 
 struct ErroredFile {
@@ -142,18 +144,11 @@ impl ErroredFile {
     }
 }
 
-#[derive(Debug, Clone)]
-enum HoverState {
-    Idle,
-    Hovered,
-    ButtonHovered,
-}
-
 impl FileState {
     pub fn new(name: Arc<Path>) -> Self {
         Self {
             name,
-            hovered: HoverState::Idle,
+            hovered: false,
         }
     }
 }
@@ -185,7 +180,7 @@ enum Message {
     ConversionDone,
     CloseDialog(window::Id),
     SetParallelism(NonZeroUsize),
-    HoverEvent(Arc<Path>, HoverState),
+    HoverEvent(Arc<Path>, bool),
     ToggleFileError(Arc<Path>),
 }
 
@@ -305,7 +300,7 @@ impl OraConverterGui {
                 state.files.remove(&file);
 
                 if let Some((_, s)) = state.files.range_mut(file..).next() {
-                    s.hovered = HoverState::ButtonHovered;
+                    s.hovered = true;
                 };
             }
             Message::SelectOutput => {
@@ -472,57 +467,23 @@ impl OraConverterGui {
                 .files
                 .iter()
                 .map(|(path, FileState { name, hovered })| {
-                    Row::new()
-                        .push(
-                            MouseArea::new(file_scrollarea(
-                                Container::new(file_text(name)),
-                                |_| container::Style::default(),
-                            ))
-                            .on_move(|_| Message::HoverEvent(path.clone(), HoverState::Hovered))
-                            .on_exit(Message::HoverEvent(path.clone(), HoverState::Idle)),
-                        )
-                        .push(
-                            MouseArea::new(
-                                Container::new(
-                                    button(
-                                        Svg::new(icons::TRASH.clone())
-                                            .height(30)
-                                            .width(30)
-                                            .style(move |t: &Theme, s| svg::Style {
-                                                color: Some(match (s, hovered) {
-                                                    (svg::Status::Idle, HoverState::Idle) => {
-                                                        t.palette().background
-                                                    }
-                                                    (svg::Status::Idle, HoverState::Hovered) => {
-                                                        t.palette().text
-                                                    }
-                                                    (svg::Status::Hovered, _)
-                                                    | (_, HoverState::ButtonHovered) => {
-                                                        t.palette().danger
-                                                    }
-                                                }),
-                                            })
-                                            .content_fit(iced::ContentFit::Contain),
-                                    )
-                                    .width(35)
-                                    .height(30)
-                                    .style(|x: &Theme, _| button::Style {
-                                        background: Some(Background::Color(Color::TRANSPARENT)),
-                                        text_color: x.palette().text,
-                                        border: Border::default(),
-                                        shadow: Shadow::default(),
-                                        snap: true,
-                                    })
-                                    .padding(Padding::ZERO.left(2).right(12))
-                                    .on_press(Message::RemoveFile(path.clone())),
-                                )
-                                .align_right(Length::Shrink),
-                            )
-                            .on_move(|_| {
-                                Message::HoverEvent(path.clone(), HoverState::ButtonHovered)
-                            })
-                            .on_exit(Message::HoverEvent(path.clone(), HoverState::Idle)),
-                        )
+                    MouseArea::new(file_scrollarea(
+                        Container::new(
+                            Rich::with_spans([Span::<()>::new(name.to_string_lossy())
+                                .strikethrough(*hovered)
+                                .font_maybe(hovered.then_some(Font {
+                                    style: font::Style::Italic,
+                                    ..Font::default()
+                                }))])
+                            .wrapping(text::Wrapping::None)
+                            .height(20),
+                        ),
+                        |_| container::Style::default(),
+                    ))
+                    .interaction(Interaction::Pointer)
+                    .on_press(Message::RemoveFile(path.clone()))
+                    .on_move(|_| Message::HoverEvent(path.clone(), true))
+                    .on_exit(Message::HoverEvent(path.clone(), false))
                 })
                 .map(Element::from),
         );
