@@ -1,3 +1,5 @@
+#![windows_subsystem = "windows"]
+
 use std::{
     collections::{BTreeMap, HashMap},
     convert::identity,
