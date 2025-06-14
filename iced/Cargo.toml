@@ -1,0 +1,15 @@
+[package]
+name = "ui-iced"
+edition = "2024"
+
+[dependencies]
+eyre.workspace = true
+rfd.workspace = true
+thiserror.workspace = true
+pdn-export = { path = "../shared" }
+iced = { git = "https://github.com/iced-rs/iced.git", features = ["tokio", "sipper", "advanced", "svg"] }
+tokio = { version = "1", features = ["sync", "rt"] }
+walkdir = "2.5.0"
+
+[features]
+pdn-sys = ["pdn-export/pdn-sys"]

@@ -1,0 +1,24 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Library</OutputType>
+    <TargetFramework>net9.0-windows</TargetFramework>
+    <GenerateDependencyFile>false</GenerateDependencyFile>
+    <EnableUnsafeBinaryFormatterSerialization>true</EnableUnsafeBinaryFormatterSerialization>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <ItemGroup>
+    <SupportedPlatform Include="windows" />
+    <Reference Include="PaintDotNet.Data">
+      <SpecificVersion>False</SpecificVersion>
+      <Private>false</Private>
+      <HintPath>libs/PaintDotNet.Data.dll</HintPath>
+    </Reference>
+
+    <Reference Include="OpenRasterFileType">
+      <SpecificVersion>False</SpecificVersion>
+      <Private>false</Private>
+      <HintPath>libs/OpenRasterFileType.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+</Project>

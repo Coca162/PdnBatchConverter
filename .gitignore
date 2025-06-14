@@ -1,0 +1,5 @@
+/target
+/shared/bridge/obj
+/shared/bridge/bin
+/shared/bridge/libs
+.vscode

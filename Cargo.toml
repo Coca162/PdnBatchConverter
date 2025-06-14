@@ -1,0 +1,10 @@
+[workspace]
+resolver = "3"
+members = ["cli", "iced", "shared"]
+
+[workspace.dependencies]
+color-eyre = "0.6"
+eyre = "0.6"
+rayon = "1.10"
+rfd = "0.15.3"
+thiserror = "2"
