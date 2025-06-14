@@ -6,7 +6,7 @@ use pdn_conv::{PdnHoster, VERSION};
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 
 #[derive(Parser)]
-#[command(display_name("PDN Batch Converter"), version(VERSION), about, long_about = None)]
+#[command(display_name("PdnBatchConverter"), version(VERSION), about, long_about = None)]
 enum Cli {
     Select {
         pdn_dll: PathBuf,

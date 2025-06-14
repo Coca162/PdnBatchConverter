@@ -130,7 +130,7 @@ fn get_or_create_config(path: &Path) -> Result<DocumentMut, eyre::Error> {
 }
 
 fn get_config_path() -> Result<PathBuf, eyre::Error> {
-    let proj_dirs = ProjectDirs::from("", "", "PDN Batch Converter")
+    let proj_dirs = ProjectDirs::from("", "", "PdnBatchConverter")
         .ok_or_eyre("Could not find where OS stores application's configs.")?;
     Ok(proj_dirs.config_dir().join("config.toml"))
 }

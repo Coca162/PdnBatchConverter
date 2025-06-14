@@ -84,7 +84,7 @@ pub fn main() -> iced::Result {
         let title = match s {
             OraConverterGui::SetupIssue(_) => "Setup",
             OraConverterGui::MainWindow(MainState { id, .. }) if *id == w_id => {
-                "PDN Batch Converter"
+                "PdnBatchConverter"
             }
             OraConverterGui::MainWindow(MainState { dialog_windows, .. }) => {
                 match dialog_windows.get(&w_id) {
