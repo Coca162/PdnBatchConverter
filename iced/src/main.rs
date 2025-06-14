@@ -40,7 +40,7 @@ use rfd::FileHandle;
 
 use dialog::Dialog;
 use folder_error::{FolderSearchError, SelectFolderErrors};
-use pdn_export::{DEFAULT_LOCATION, State, StateInitError, VERSION};
+use pdn_conv::{DEFAULT_LOCATION, State, StateInitError, VERSION};
 
 mod dialog;
 mod folder_error;

@@ -130,7 +130,7 @@ fn get_or_create_config(path: &Path) -> Result<DocumentMut, eyre::Error> {
 }
 
 fn get_config_path() -> Result<PathBuf, eyre::Error> {
-    let proj_dirs = ProjectDirs::from("", "", "pdn-converter")
+    let proj_dirs = ProjectDirs::from("", "", "PDN Batch Converter")
         .ok_or_eyre("Could not find where OS stores application's configs.")?;
     Ok(proj_dirs.config_dir().join("config.toml"))
 }
@@ -170,7 +170,7 @@ pub enum ConfigError {
     CreationError(#[source] HosterError, String),
     #[error(transparent)]
     Io(#[from] io::Error),
-    #[error("Could not parse pdn-export's config")]
+    #[error("Could not parse the program's config")]
     TomlError(#[from] toml_edit::TomlError),
     #[error(transparent)]
     Generic(#[from] eyre::Error),

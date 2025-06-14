@@ -654,7 +654,7 @@ version = "0.0.0"
 dependencies = [
  "clap",
  "color-eyre",
- "pdn-export",
+ "pdn-conv",
  "rayon",
 ]
 
@@ -2831,7 +2831,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "57c0d7b74b563b49d38dae00a0c37d4d6de9b432382b2892f0574ddcae73fd0a"
 
 [[package]]
-name = "pdn-export"
+name = "pdn-conv"
 version = "0.0.0"
 dependencies = [
  "clap",
@@ -3870,7 +3870,7 @@ version = "0.0.0"
 dependencies = [
  "eyre",
  "iced",
- "pdn-export",
+ "pdn-conv",
  "rfd",
  "thiserror 2.0.11",
  "tokio",

@@ -2,11 +2,11 @@ use std::{convert::identity, env::current_dir, path::PathBuf, sync::Arc};
 
 use clap::Parser;
 use color_eyre::eyre::{self, OptionExt};
-use pdn_export::{PdnHoster, VERSION};
+use pdn_conv::{PdnHoster, VERSION};
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 
 #[derive(Parser)]
-#[command(display_name("PDN Converter"), version(VERSION), about, long_about = None)]
+#[command(display_name("PDN Batch Converter"), version(VERSION), about, long_about = None)]
 enum Cli {
     Select {
         pdn_dll: PathBuf,
@@ -25,10 +25,10 @@ fn main() -> eyre::Result<()> {
 
     match cli {
         Cli::Select { pdn_dll } => {
-            pdn_export::State::from_pdn_location(&pdn_dll)?;
+            pdn_conv::State::from_pdn_location(&pdn_dll)?;
         }
         Cli::Convert { input, output } => {
-            let state = pdn_export::State::init()?;
+            let state = pdn_conv::State::init()?;
 
             let output = output.ok_or_else(current_dir).or_else(identity)?;
 

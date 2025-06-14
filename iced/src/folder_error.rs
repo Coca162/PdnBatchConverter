@@ -3,7 +3,7 @@ use std::{fmt::Write, io};
 use iced::{widget::Button, window};
 
 use crate::{MAX_FILE_SEARCH, Message, dialog::Dialog};
-use pdn_export::VERSION;
+use pdn_conv::VERSION;
 
 #[derive(Debug, thiserror::Error)]
 pub enum FolderSearchError {
