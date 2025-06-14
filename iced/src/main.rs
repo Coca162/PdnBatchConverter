@@ -3,7 +3,7 @@ use std::{
     convert::identity,
     fmt::Write,
     fs::{create_dir_all, read_dir},
-    io, iter, mem,
+    iter, mem,
     num::NonZeroUsize,
     ops::Not,
     path::{Path, PathBuf},
@@ -313,6 +313,7 @@ impl OraConverterGui {
             }
             Message::StartConversion(Some(output)) => {
                 state.in_progress = Vec::new();
+                state.errored = Vec::new();
                 state.done = Vec::new();
 
                 let output: Arc<Path> = output.path().into();
@@ -345,8 +346,7 @@ impl OraConverterGui {
                                     if let Some(parent) = output.parent().filter(|_| has_parent) {
                                         create_dir_all(parent)?;
                                     }
-                                    hoster.ora_file_from_pdn(&path, &output)?;
-                                    Err(io::Error::other("You fucked up like real bad:\nLike this is dangerously bad\nIt might even explode you!\nOr turn you into a horrifying turtle!\nOr maybe even worse!\nOh god!\nGoodness gracious!\nFuck!"))
+                                    hoster.ora_file_from_pdn(&path, &output)
                                 })
                                 .await
                                 .map_err(eyre::Report::new)
