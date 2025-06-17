@@ -15,7 +15,13 @@ fn main() {
     }
 
     match env::var("SKIP_DOTNET_BUILDING") {
-        Ok(x) if x.eq_ignore_ascii_case("yes") | x.eq_ignore_ascii_case("y") | x.eq_ignore_ascii_case("true") => return,
+        Ok(x)
+            if x.eq_ignore_ascii_case("yes")
+                | x.eq_ignore_ascii_case("y")
+                | x.eq_ignore_ascii_case("true") =>
+        {
+            return;
+        }
         Ok(_) | Err(env::VarError::NotPresent) => (),
         Err(e) => panic!("{e}"),
     }
