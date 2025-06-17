@@ -104,7 +104,12 @@ impl PdnHoster {
         output: impl AsRef<Path>,
     ) -> eyre::Result<()> {
         let input = fs::File::open(input)?;
-        let output = fs::File::create_new(output)?;
+        let output = fs::File::options()
+            .read(true)
+            .write(true)
+            .create(true)
+            .truncate(true)
+            .open(output)?;
 
         let handles = PdnToOraIO {
             input: input.into_raw_handle(),
