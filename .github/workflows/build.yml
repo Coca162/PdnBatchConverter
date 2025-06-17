@@ -30,7 +30,7 @@ jobs:
       uses: actions/cache@v4
       with:
         path: shared/libs
-        key: ${{ hashFiles('shared/bridge', 'shared/openraster') }}-${{ steps.show-pdn.outputs.PDN_VERSION }}-dotnet9
+        key: ${{ hashFiles('shared/bridge', 'shared/openraster') }}-${{ steps.show-pdn.outputs.PDN_VERSION }}-dotnet906
 
     - name: Set dotnet skip
       run: echo "SKIP_DOTNET_BUILDING=${{ steps.cache-dotnet.outputs.cache-hit }}" >> $env:GITHUB_ENV
@@ -46,7 +46,8 @@ jobs:
       shell: pwsh
       run: |
         $NetHost = Get-ChildItem -Path "C:\Program Files\dotnet\packs\Microsoft.NETCore.App.Host.win-x64"-Recurse -Include libnethost.lib | Select FullName | Select-Object -Last 1;
-        New-Item -Type dir shared\libs
+        echo $NetHost
+        New-Item -Type dir -Force shared\libs
         Copy-Item $NetHost.FullName -Destination "shared\libs\libnethost.lib"
 
     - name: Install Paint.NET
@@ -61,6 +62,8 @@ jobs:
 
     - name: Rust caching
       uses: Swatinem/rust-cache@v2
+      with:
+        prefix-key: "v1-rust"
 
     - name: Build
       run: cargo build --release -F pdn-sys
