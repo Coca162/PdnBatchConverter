@@ -22,6 +22,9 @@ jobs:
         path: shared/libs
         key: ${{ hashFiles('shared/bridge', 'shared/openraster') }}-dotnet
 
+    - name: Set dotnet skip
+      run: echo "SKIP_DOTNET_BUILDING=${{ steps.cache-dotnet.outputs.cache-hit }}" >> $GITHUB_ENV
+
     - name: Install .NET Core
       if: steps.cache-dotnet.outputs.cache-hit != 'true'
       uses: actions/setup-dotnet@v4
@@ -36,8 +39,8 @@ jobs:
       uses: dtolnay/rust-toolchain@stable
 
     - name: Build
-      run: SKIP_DOTNET_BUILDING="${{ steps.cache-dotnet.outputs.cache-hit }}" cargo build --release -F pdn-sys
-
+      run: cargo build --release -F pdn-sys
+      
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4
       with:
