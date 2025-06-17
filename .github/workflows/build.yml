@@ -15,15 +15,25 @@ jobs:
       with:
         fetch-depth: 0
 
+    - name: Get Latest Paint.net Version
+      id: show-pdn
+      run: |
+        $raw = winget show -s "winget" -e --id=dotPDN.PaintDotNet
+        echo $raw
+        $parsed = $raw | Select-String -Pattern '(?<=Version: ).*'
+        $version = $parsed.Matches.Value
+        echo $version
+        echo "PDN_VERSION=$version" >> $env:GITHUB_OUTPUT
+
     - name: Cache Dotnet Libraries
       id: cache-dotnet
       uses: actions/cache@v4
       with:
         path: shared/libs
-        key: ${{ hashFiles('shared/bridge', 'shared/openraster') }}-dotnet9
+        key: ${{ hashFiles('shared/bridge', 'shared/openraster') }}-${{ steps.show-pdn.outputs.PDN_VERSION }}-dotnet9
 
     - name: Set dotnet skip
-      run: echo "SKIP_DOTNET_BUILDING=${{ steps.cache-dotnet.outputs.cache-hit }}" >> $GITHUB_ENV
+      run: echo "SKIP_DOTNET_BUILDING=${{ steps.cache-dotnet.outputs.cache-hit }}" >> $env:GITHUB_ENV
 
     - name: Install .NET Core
       if: steps.cache-dotnet.outputs.cache-hit != 'true'
