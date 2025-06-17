@@ -4,7 +4,7 @@ pub use self::mock_pdn::{HosterError, MockPdnHoster as PdnHoster};
 pub use self::pdn::{HosterError, PdnHoster};
 
 #[cfg(all(not(windows), feature = "pdn-sys"))]
-compile_error!("Paint.net cannot be run on linux!");
+compile_error!("Paint.net cannot be run on non-windows targets");
 
 mod mock_pdn;
 #[cfg(all(windows, feature = "pdn-sys"))]

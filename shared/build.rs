@@ -3,12 +3,21 @@ use std::path::PathBuf;
 use std::process::Command;
 
 fn main() {
-    let target = env::var("CARGO_CFG_TARGET_OS").unwrap();
-
     println!("cargo::rerun-if-env-changed=CARGO_CFG_FEATURE");
 
-    if target != "windows" || !cfg!(feature = "pdn-sys") {
+    if !cfg!(feature = "pdn-sys") {
         return;
+    }
+
+    let target = env::var("CARGO_CFG_TARGET_OS").unwrap();
+    if target != "windows" {
+        println!("cargo::error=You cannot use Paint.net on non-windows targets")
+    }
+
+    match env::var("SKIP_DOTNET_BUILDING") {
+        Ok(x) if x.eq_ignore_ascii_case("yes") | x.eq_ignore_ascii_case("y") => return,
+        Ok(_) | Err(env::VarError::NotPresent) => (),
+        Err(e) => panic!("{e}"),
     }
 
     println!("cargo:rerun-if-changed=bridge/libs");
