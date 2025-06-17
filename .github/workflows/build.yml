@@ -53,11 +53,14 @@ jobs:
       if: steps.cache-dotnet.outputs.cache-hit != 'true'
       run: winget install -h -s "winget" -e --id=dotPDN.PaintDotNet
 
+    - name: Copy over libnethost to netcorehost
+      run: cp "shared/libs/libnethost.lib" "libnethost.lib"
+
     - name: Install Rust
       uses: dtolnay/rust-toolchain@stable
 
-    - name: Copy over libnethost to netcorehost
-      run: cp "shared/libs/libnethost.lib" "libnethost.lib"
+    - name: Rust caching
+      uses: Swatinem/rust-cache@v2
 
     - name: Build
       run: cargo build --release -F pdn-sys
