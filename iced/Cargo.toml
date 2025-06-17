@@ -1,5 +1,5 @@
 [package]
-name = "ui-iced"
+name = "PdnBatchConverter"
 edition = "2024"
 
 [dependencies]

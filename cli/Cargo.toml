@@ -1,5 +1,5 @@
 [package]
-name = "cli"
+name = "PdnBatchConverter-Cli"
 edition = "2024"
 
 [dependencies]

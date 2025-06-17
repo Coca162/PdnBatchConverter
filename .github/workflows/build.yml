@@ -15,28 +15,31 @@ jobs:
       with:
         fetch-depth: 0
 
+    - name: Cache Dotnet Libraries
+      id: cache-dotnet
+      uses: actions/cache@v4
+      with:
+        path: shared/libs
+        key: ${{ hashFiles('shared/bridge', 'shared/openraster') }}-dotnet
+
     - name: Install .NET Core
+      if: steps.cache-dotnet.outputs.cache-hit != 'true'
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: 9.0.x
 
+    - name: Install Paint.NET
+      if: steps.cache-dotnet.outputs.cache-hit != 'true'
+      run: winget install -h -s "winget" -e --id=dotPDN.PaintDotNet
+
     - name: Install Rust
       uses: dtolnay/rust-toolchain@stable
 
-    - name: Install Paint.NET
-      run: winget install -h -s "winget" -e --id=dotPDN.PaintDotNet
-
     - name: Build
-      run: cargo build --release
+      run: SKIP_DOTNET_BUILDING="${{ steps.cache-dotnet.outputs.cache-hit }}" cargo build --release -F pdn-sys
 
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: PdnBatchConverter.exe
-        path: target\release\ui-iced.exe
-
-    - name: Upload build artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: PdnBatchConverter-Cli.exe
-        path: target\release\cli.exe
+        name: PdnBatchConverter-${{ github.sha }}
+        path: target\release\*.exe
