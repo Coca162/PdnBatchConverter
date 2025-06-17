@@ -1,12 +1,14 @@
+use core::slice;
 use std::{
-    error::Error,
-    fmt::{self, Debug, Display},
+    ffi::{CString, c_char},
+    fmt::{self, Debug},
     fs::{self, File},
     io::{self, Write},
     os::windows::io::IntoRawHandle,
     path::{Path, PathBuf},
 };
 
+use color_eyre::eyre;
 use netcorehost::{
     error::HostingError,
     hostfxr::{GetManagedFunctionError, ManagedFunction},
@@ -16,14 +18,12 @@ use netcorehost::{
 };
 use std::os::windows::io::RawHandle;
 
-use crate::DEFAULT_LOCATION;
-
 pub struct PdnHoster {
     // Doesn't need to be kept for some reason
     // How do the functions still work work if the context has closed?
     // #[allow(dead_code)]
     // context: HostfxrContext<InitializedForCommandLine>,
-    pdn_to_ora: ManagedFunction<unsafe extern "system" fn(*const PdnToOraIO)>,
+    pdn_to_ora: ManagedFunction<unsafe extern "system" fn(*const PdnToOraIO) -> *mut c_char>,
 }
 
 impl Debug for PdnHoster {
@@ -81,9 +81,16 @@ impl PdnHoster {
             include_bytes!("../libs/PdnBridge.pdb"),
         )?;
 
+        let set_copy_to_c_string = context.get_delegate_loader()?
+        .get_function_with_unmanaged_callers_only::<fn(f: unsafe extern "system" fn(*const u16, i32) -> *mut c_char)>(
+            pdcstr!("PdnBridge.Library, PdnBridge"),
+            pdcstr!("SetCopyToCStringFunctionPtr"),
+        )?;
+        set_copy_to_c_string(copy_to_c_string);
+
         let pdn_to_ora = context
             .get_delegate_loader()?
-            .get_function_with_unmanaged_callers_only::<unsafe fn(*const PdnToOraIO)>(
+            .get_function_with_unmanaged_callers_only::<unsafe fn(*const PdnToOraIO) -> *mut c_char>(
                 pdcstr!("PdnBridge.Library, PdnBridge"),
                 pdcstr!("PdnToOra"),
             )?;
@@ -95,7 +102,7 @@ impl PdnHoster {
         &self,
         input: impl AsRef<Path>,
         output: impl AsRef<Path>,
-    ) -> io::Result<()> {
+    ) -> eyre::Result<()> {
         let input = fs::File::open(input)?;
         let output = fs::File::create_new(output)?;
 
@@ -108,10 +115,26 @@ impl PdnHoster {
 
         // SAFETY: the C# side should ensure that these handles will be closed
         // We are also making sure we won't drop these ourselves later
-        unsafe { (*self.pdn_to_ora)(args) };
+        let error = unsafe { (*self.pdn_to_ora)(args) };
+
+        if !error.is_null() {
+            // SAFETY: This should be only getting created by our own allocator
+            let error = unsafe { CString::from_raw(error) };
+            eyre::bail!("Exception caught in C# code: {}", error.to_string_lossy());
+        }
 
         Ok(())
     }
+}
+
+unsafe extern "system" fn copy_to_c_string(ptr: *const u16, length: i32) -> *mut c_char {
+    let wide_chars = unsafe { slice::from_raw_parts(ptr, length as usize) };
+    let string = String::from_utf16_lossy(wide_chars);
+    let c_string = match CString::new(string) {
+        Ok(c_string) => c_string,
+        Err(_) => return std::ptr::null_mut(),
+    };
+    c_string.into_raw()
 }
 
 #[derive(Debug, thiserror::Error)]

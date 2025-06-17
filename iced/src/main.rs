@@ -352,7 +352,7 @@ impl OraConverterGui {
                                 })
                                 .await
                                 .map_err(eyre::Report::new)
-                                .and_then(|x| x.map_err(eyre::Report::new));
+                                .and_then(identity);
 
                                 sender
                                     .send(Message::FileConverted(name, result.map_err(Arc::new)))

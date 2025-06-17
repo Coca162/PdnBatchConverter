@@ -1,11 +1,12 @@
 use std::{
     error::Error,
     fmt::Display,
-    io,
     path::{Path, PathBuf},
     thread,
     time::Duration,
 };
+
+use color_eyre::eyre;
 
 #[derive(Debug)]
 pub struct MockPdnHoster;
@@ -20,7 +21,7 @@ impl MockPdnHoster {
         &self,
         input: impl AsRef<Path>,
         output: impl AsRef<Path>,
-    ) -> io::Result<()> {
+    ) -> eyre::Result<()> {
         thread::sleep(Duration::from_secs(1));
 
         // File::create(output)?;
