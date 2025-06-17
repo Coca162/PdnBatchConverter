@@ -20,7 +20,7 @@ jobs:
       uses: actions/cache@v4
       with:
         path: shared/libs
-        key: ${{ hashFiles('shared/bridge', 'shared/openraster') }}-dotnet
+        key: ${{ hashFiles('shared/bridge', 'shared/openraster') }}-dotnet9
 
     - name: Set dotnet skip
       run: echo "SKIP_DOTNET_BUILDING=${{ steps.cache-dotnet.outputs.cache-hit }}" >> $GITHUB_ENV
@@ -31,6 +31,14 @@ jobs:
       with:
         dotnet-version: 9.0.x
 
+    - name: Copy over libnethost to be cached
+      if: steps.cache-dotnet.outputs.cache-hit != 'true'
+      shell: pwsh
+      run: |
+        $NetHost = Get-ChildItem -Path "C:\Program Files\dotnet\packs\Microsoft.NETCore.App.Host.win-x64"-Recurse -Include libnethost.lib | Select FullName | Select-Object -Last 1;
+        New-Item -Type dir shared\libs
+        Copy-Item $NetHost.FullName -Destination "shared\libs\libnethost.lib"
+
     - name: Install Paint.NET
       if: steps.cache-dotnet.outputs.cache-hit != 'true'
       run: winget install -h -s "winget" -e --id=dotPDN.PaintDotNet
@@ -38,9 +46,12 @@ jobs:
     - name: Install Rust
       uses: dtolnay/rust-toolchain@stable
 
+    - name: Copy over libnethost to netcorehost
+      run: cp "shared/libs/libnethost.lib" "libnethost.lib"
+
     - name: Build
       run: cargo build --release -F pdn-sys
-      
+
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4
       with:
