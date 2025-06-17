@@ -12,13 +12,9 @@
     <Reference Include="PaintDotNet.Data">
       <SpecificVersion>False</SpecificVersion>
       <Private>false</Private>
-      <HintPath>libs/PaintDotNet.Data.dll</HintPath>
+      <HintPath>C:\Program Files\Paint.NET\PaintDotNet.Data.dll</HintPath>
     </Reference>
 
-    <Reference Include="OpenRasterFileType">
-      <SpecificVersion>False</SpecificVersion>
-      <Private>false</Private>
-      <HintPath>libs/OpenRasterFileType.dll</HintPath>
-    </Reference>
+    <ProjectReference Include="../openraster/OpenRaster Filetype.csproj" />
   </ItemGroup>
 </Project>

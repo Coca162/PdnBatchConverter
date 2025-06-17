@@ -56,7 +56,7 @@ impl PdnHoster {
         };
 
         match File::create_new(&ora_dll) {
-            Ok(mut f) => f.write_all(include_bytes!("../bridge/libs/OpenRasterFileType.dll"))?,
+            Ok(mut f) => f.write_all(include_bytes!("../libs/OpenRasterFileType.dll"))?,
             Err(e) if e.kind() == io::ErrorKind::AlreadyExists => (),
             Err(e) => return Err(e.into()),
         }
@@ -77,8 +77,8 @@ impl PdnHoster {
         }
 
         context.load_assembly_from_bytes(
-            include_bytes!("../bridge/bin/included/PdnBridge.dll"),
-            include_bytes!("../bridge/bin/included/PdnBridge.pdb"),
+            include_bytes!("../libs/PdnBridge.dll"),
+            include_bytes!("../libs/PdnBridge.pdb"),
         )?;
 
         let pdn_to_ora = context

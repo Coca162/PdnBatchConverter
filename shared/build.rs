@@ -38,8 +38,8 @@ fn main() {
         .arg("win");
 
     let mut out = dotnet_source_dir;
-    out.push("bin");
-    out.push("included");
+    out.pop();
+    out.push("libs");
 
     command.arg("-o").arg(&out);
 
