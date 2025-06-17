@@ -10,7 +10,7 @@ directories = "6.0"
 toml_edit = { version = "0.22.26" }
 
 [target.'cfg(windows)'.dependencies]
-netcorehost = { version = "0.17.0", default-features = false, features = ["net8_0", "nethost"], optional = true}
+netcorehost = { version = "0.18.0", default-features = false, features = ["net8_0", "nethost"], optional = true}
 
 [features]
 pdn-sys = ["dep:netcorehost"]
