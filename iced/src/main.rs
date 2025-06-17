@@ -872,7 +872,7 @@ fn eyre_to_text(report: &eyre::Report) -> String {
     write!(&mut output, "{report}").unwrap();
 
     if let Some(cause) = report.source() {
-        output.push_str("\n\nError stack:");
+        output.push_str("\n\nError stack:\n");
         for (i, error) in std::iter::successors(Some(cause), |&e| e.source()).enumerate() {
             writeln!(&mut output, "{i}: {error}").unwrap();
         }
