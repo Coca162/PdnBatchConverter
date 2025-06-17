@@ -5,7 +5,6 @@ edition = "2024"
 [dependencies]
 color-eyre.workspace = true
 thiserror.workspace = true
-clap = { version = "4.5", features = ["derive"] }
 directories = "6.0"
 toml_edit = { version = "0.22.26" }
 
