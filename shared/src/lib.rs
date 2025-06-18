@@ -15,4 +15,4 @@ mod state;
 
 pub const DEFAULT_LOCATION: &str = r#"C:\Program Files\Paint.NET\paintdotnet.dll"#;
 
-pub const VERSION: &str = "Version 0";
+pub const VERSION: &str = "Version 1";
