@@ -15,6 +15,26 @@ public static class Library {
     public static unsafe void SetCopyToCStringFunctionPtr(delegate*<char*, int, byte*> copyToCString) => CopyToCString = copyToCString;
 
     [StructLayoutAttribute(LayoutKind.Sequential)]
+    public struct InternalVersion {
+        public int major;
+        public int minor;
+        public int build;
+        public int revision;
+    }
+
+    [UnmanagedCallersOnly]
+    public static unsafe void SetPdnVersion(InternalVersion pdn_version) {
+        var installed_version = new Version(pdn_version.major, pdn_version.minor, pdn_version.build, pdn_version.revision);
+
+        AppDomain.CurrentDomain.AssemblyResolve += new ResolveEventHandler((_, sender) => {
+            var loadName = new AssemblyName(sender.Name) {
+                Version = installed_version
+            };
+            return Assembly.Load(loadName);
+        });
+    }
+
+    [StructLayoutAttribute(LayoutKind.Sequential)]
     public struct IO {
         public nint input;
         public nint output;

@@ -4,6 +4,7 @@ use std::{
     fmt::{self, Debug},
     fs::{self, File},
     io::{self, Write},
+    iter,
     os::windows::io::IntoRawHandle,
     path::{Path, PathBuf},
 };
@@ -36,6 +37,14 @@ impl Debug for PdnHoster {
 struct PdnToOraIO {
     input: RawHandle,
     output: RawHandle,
+}
+
+#[repr(C)]
+struct Version {
+    major: i32,
+    minor: i32,
+    build: i32,
+    revision: i32,
 }
 
 impl PdnHoster {
@@ -87,6 +96,39 @@ impl PdnHoster {
             pdcstr!("SetCopyToCStringFunctionPtr"),
         )?;
         set_copy_to_c_string(copy_to_c_string);
+
+        let set_pdn_version = context.get_delegate_loader()?
+        .get_function_with_unmanaged_callers_only::<fn(*const Version)>(
+            pdcstr!("PdnBridge.Library, PdnBridge"),
+            pdcstr!("SetPdnVersion"),
+        )?;
+
+        let deps_path = {
+            let mut path = file_types;
+            path.pop();
+            path.push("paintdotnet.deps.json");
+            path
+        };
+
+        let dep_file = fs::read_to_string(deps_path)?;
+        let mut version_iter = dep_file
+            .split_once(r#""PaintDotNet.Data.Reference": ""#)
+            .ok_or(HosterError::DepParser)?
+            .1
+            .split_once('"')
+            .ok_or(HosterError::DepParser)?
+            .0
+            .split(".")
+            .chain(iter::repeat("-1"))
+            .map(|x| x.parse::<i32>().map_err(|_| HosterError::DepParser));
+        let version = Version {
+            major: version_iter.next().ok_or(HosterError::DepParser)??,
+            minor: version_iter.next().ok_or(HosterError::DepParser)??,
+            build: version_iter.next().ok_or(HosterError::DepParser)??,
+            revision: version_iter.next().ok_or(HosterError::DepParser)??,
+        };
+
+        set_pdn_version((&version) as *const Version);
 
         let pdn_to_ora = context
             .get_delegate_loader()?
@@ -152,6 +194,8 @@ pub enum HosterError {
     BridgeFunctionError(#[from] GetManagedFunctionError),
     #[error(transparent)]
     Io(#[from] io::Error),
+    #[error("Failed at parsing paintdotnet.deps.json in json")]
+    DepParser,
     #[error("Path to paintdotnet.dll contains a nul character where they shouldn't be")]
     ContainsNul(#[from] ContainsNul),
 }
