@@ -15,4 +15,15 @@ mod state;
 
 pub const DEFAULT_LOCATION: &str = r#"C:\Program Files\Paint.NET\paintdotnet.dll"#;
 
-pub const VERSION: &str = "Version 1";
+pub const VERSION: &str = match (COMMIT_SHORT_SHA, VERSION_NAME) {
+    (_, Some(version)) => version,
+    (Some(hash), _) => hash.split_at(7).0,
+    (None, None) => "Dev Version"
+};
+
+const VERSION_NAME: Option<&str> = match option_env!("VERSION_NAME") {
+    Some(v) if !v.is_empty() => Some(v),
+    Some(_) | None => None,
+};
+
+const COMMIT_SHORT_SHA: Option<&str> = option_env!("GITHUB_SHA");

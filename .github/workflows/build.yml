@@ -1,6 +1,10 @@
 name: Build Release
 
 on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version Name'
   push:
     branches: [ "trunk" ]
   pull_request:
@@ -67,6 +71,8 @@ jobs:
 
     - name: Build
       run: cargo build --release -F pdn-sys
+      env:
+        VERSION_NAME: ${{ inputs.version }}
 
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4
