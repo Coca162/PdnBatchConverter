@@ -97,11 +97,12 @@ impl PdnHoster {
         )?;
         set_copy_to_c_string(copy_to_c_string);
 
-        let set_pdn_version = context.get_delegate_loader()?
-        .get_function_with_unmanaged_callers_only::<fn(*const Version)>(
-            pdcstr!("PdnBridge.Library, PdnBridge"),
-            pdcstr!("SetPdnVersion"),
-        )?;
+        let set_pdn_version = context
+            .get_delegate_loader()?
+            .get_function_with_unmanaged_callers_only::<fn(*const Version)>(
+                pdcstr!("PdnBridge.Library, PdnBridge"),
+                pdcstr!("SetPdnVersion"),
+            )?;
 
         let deps_path = {
             let mut path = file_types;

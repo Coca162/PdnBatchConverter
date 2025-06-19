@@ -627,13 +627,23 @@ impl OraConverterGui {
                 .map(|n| file_text(n))
                 .map(Container::new)
                 .map(|f| {
-                    file_scrollarea(f, |_| container::Style {
-                        // background: Some(Background::Color(
-                        //     t.extended_palette().success.base.color,
-                        // )),
-                        // text_color: Some(t.extended_palette().success.base.text),
-                        ..Default::default()
-                    })
+                    Row::new()
+                        .push(file_scrollarea(f, |_| container::Style {
+                            // text_color: Some(t.extended_palette().primary.weak.text),
+                            ..Default::default()
+                        }))
+                        .push(
+                            Container::new(
+                                Svg::new(icons::CHECK.clone())
+                                    .height(22)
+                                    .width(22)
+                                    .style(move |t: &Theme, _| svg::Style {
+                                        color: Some(t.extended_palette().success.strong.color),
+                                    }),
+                            )
+                            .padding(Padding::ZERO.left(2).right(12)),
+                        )
+                        .align_y(Vertical::Center)
                 })
                 .map(Element::from),
         );

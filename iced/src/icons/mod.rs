@@ -4,6 +4,10 @@
 use iced::advanced::svg::Handle;
 use std::{borrow::Cow, sync::LazyLock};
 
+pub static CHECK: LazyLock<Handle> = LazyLock::new(|| {
+    Handle::from_memory(Cow::Borrowed(include_bytes!("check.svg").as_slice()))
+});
+
 pub static CLIPBOARD: LazyLock<Handle> = LazyLock::new(|| {
     Handle::from_memory(Cow::Borrowed(include_bytes!("clipboard.svg").as_slice()))
 });
