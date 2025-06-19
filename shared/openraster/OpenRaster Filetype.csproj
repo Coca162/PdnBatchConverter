@@ -17,36 +17,29 @@
   <ItemGroup>
     <SupportedPlatform Include="windows" />
     <Reference Include="PaintDotNet.Base">
-      <SpecificVersion>False</SpecificVersion>
       <Private>false</Private>
       <HintPath>C:\Program Files\Paint.NET\PaintDotNet.Base.dll</HintPath>
     </Reference>
     <Reference Include="PaintDotNet.Core">
-      <SpecificVersion>False</SpecificVersion>
       <Private>false</Private>
       <HintPath>C:\Program Files\Paint.NET\PaintDotNet.Core.dll</HintPath>
     </Reference>
     <Reference Include="PaintDotNet.Data">
-      <SpecificVersion>False</SpecificVersion>
       <Private>false</Private>
       <HintPath>C:\Program Files\Paint.NET\PaintDotNet.Data.dll</HintPath>
     </Reference>
     <Reference Include="PaintDotNet.Effects">
-      <SpecificVersion>False</SpecificVersion>
       <Private>false</Private>
       <HintPath>C:\Program Files\Paint.NET\PaintDotNet.Effects.dll</HintPath>
     </Reference>
     <Reference Include="PaintDotNet.Primitives">
-      <SpecificVersion>False</SpecificVersion>
       <Private>false</Private>
       <HintPath>C:\Program Files\Paint.NET\PaintDotNet.Primitives.dll</HintPath>
     </Reference>
     <Reference Include="PaintDotNet.ComponentModel">
-      <SpecificVersion>False</SpecificVersion>
       <Private>false</Private>
       <HintPath>C:\Program Files\Paint.NET\PaintDotNet.ComponentModel.dll</HintPath>
     </Reference>
-    <None Include="openraster-filetype.pfx" />
     <Content Include="OraFileType.cs" />
     <PackageReference Include="System.Drawing.Common" Version="9.0.6">
       <ExcludeAssets>runtime</ExcludeAssets>

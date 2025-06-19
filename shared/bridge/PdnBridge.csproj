@@ -10,7 +10,6 @@
   <ItemGroup>
     <SupportedPlatform Include="windows" />
     <Reference Include="PaintDotNet.Data">
-      <SpecificVersion>False</SpecificVersion>
       <Private>false</Private>
       <HintPath>C:\Program Files\Paint.NET\PaintDotNet.Data.dll</HintPath>
     </Reference>
