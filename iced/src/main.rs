@@ -188,8 +188,8 @@ enum Message {
 impl OraConverterGui {
     fn main_window(hoster_state: State) -> (Self, Task<Message>) {
         let (id, t) = window::open(Settings {
-            size: Size::new(720., 600.),
-            min_size: Some(Size::new(720., 300.)),
+            size: Size::new(700., 600.),
+            min_size: Some(Size::new(550., 300.)),
             ..Default::default()
         });
         let state = MainState {
@@ -650,8 +650,8 @@ impl OraConverterGui {
 
         let output = Column::with_children(output);
 
-        let output = Container::new(output).width(Length::FillPortion(5));
-        let filelist = Container::new(files).width(Length::FillPortion(5));
+        let output = Container::new(output).width(Length::Fill);
+        let filelist = Container::new(files).width(Length::Fill);
 
         let range = (1..=state.hoster_state.max_parallelism().get()).collect::<Vec<usize>>();
 
@@ -703,7 +703,7 @@ impl OraConverterGui {
             .into(),
         ])
         .spacing(8)
-        .width(Length::FillPortion(4))
+        .width(Length::Fixed(310.))
         .padding(Padding::ZERO.top(8).bottom(8));
 
         let mut row = Row::new();
