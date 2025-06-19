@@ -4,7 +4,7 @@ use std::{
     collections::{BTreeMap, HashMap},
     convert::identity,
     fmt::Write,
-    fs::{create_dir_all, read_dir},
+    fs::{self, create_dir_all, read_dir},
     iter, mem,
     num::NonZeroUsize,
     ops::Not,
@@ -182,6 +182,7 @@ enum Message {
     SetParallelism(NonZeroUsize),
     HoverEvent(Arc<Path>, bool),
     ToggleFileError(Arc<Path>),
+    WindowEvents(window::Id, window::Event),
 }
 
 impl OraConverterGui {
@@ -277,6 +278,21 @@ impl OraConverterGui {
                             FileState::new(Path::new(x.file_stem().unwrap()).into()),
                         )
                     }));
+            }
+            Message::WindowEvents(id, window::Event::FileDropped(path)) if state.id == id => {
+                match fs::metadata(&path) {
+                    Ok(m) if m.is_dir() => {
+                        return Task::done(Message::AddFolder(Some(path.into())));
+                    }
+                    Ok(m) if m.is_file() && path.extension().is_some_and(|e| e == "pdn") => {
+                        state.files.insert(
+                            path.as_path().into(),
+                            FileState::new(Path::new(path.file_stem().unwrap()).into()),
+                        );
+                    }
+                    Ok(_) => (),
+                    Err(e) => return state.dialog_window(DialogTypes::GenericError(e.into())),
+                }
             }
             Message::OpenFolderDialog => {
                 return Task::perform(
@@ -704,7 +720,10 @@ impl OraConverterGui {
     }
 
     fn subscription(&self) -> Subscription<Message> {
-        window::close_events().map(Message::WindowClosed)
+        Subscription::batch([
+            window::close_events().map(Message::WindowClosed),
+            window::events().map(|(id, e)| Message::WindowEvents(id, e)),
+        ])
     }
 }
 
