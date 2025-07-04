@@ -9,8 +9,8 @@ use std::{
 };
 
 use crate::{DEFAULT_LOCATION, HosterError, PdnHoster};
-use color_eyre::eyre::{self, Context, OptionExt};
 use directories::ProjectDirs;
+use eyre::{Context, OptionExt};
 use toml_edit::DocumentMut;
 
 #[derive(Debug)]
@@ -141,7 +141,7 @@ pub fn default_parallelism(parallelism: NonZeroUsize) -> NonZeroUsize {
     unsafe { NonZero::new_unchecked(parallelism.get().div_ceil(6)) }
 }
 
-fn parse_parallelism(doc: &DocumentMut) -> color_eyre::Result<Option<NonZero<usize>>> {
+fn parse_parallelism(doc: &DocumentMut) -> eyre::Result<Option<NonZero<usize>>> {
     doc.get("parallelism")
         .map(|i| {
             i.as_integer()

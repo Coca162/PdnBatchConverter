@@ -18,7 +18,7 @@ pub const DEFAULT_LOCATION: &str = r#"C:\Program Files\Paint.NET\paintdotnet.dll
 pub const VERSION: &str = match (COMMIT_SHORT_SHA, VERSION_NAME) {
     (_, Some(version)) => version,
     (Some(hash), _) => hash.split_at(7).0,
-    (None, None) => "Dev Version"
+    (None, None) => "Dev Version",
 };
 
 const VERSION_NAME: Option<&str> = match option_env!("VERSION_NAME") {

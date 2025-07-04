@@ -9,8 +9,7 @@ fn main() {
         return;
     }
 
-    let target = env::var("CARGO_CFG_TARGET_OS").unwrap();
-    if target != "windows" {
+    if env::var_os("CARGO_CFG_WINDOWS").is_none() {
         println!("cargo::error=You cannot use Paint.net on non-windows targets")
     }
 

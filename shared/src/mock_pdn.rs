@@ -6,8 +6,6 @@ use std::{
     time::Duration,
 };
 
-use color_eyre::eyre;
-
 #[derive(Debug)]
 pub struct MockPdnHoster;
 
@@ -21,6 +19,31 @@ impl MockPdnHoster {
         &self,
         input: impl AsRef<Path>,
         output: impl AsRef<Path>,
+    ) -> eyre::Result<()> {
+        thread::sleep(Duration::from_secs(1));
+
+        // File::create(output)?;
+
+        Ok(())
+    }
+
+    pub fn png_file_from_pdn(
+        &self,
+        input: impl AsRef<Path>,
+        output: impl AsRef<Path>,
+    ) -> eyre::Result<()> {
+        thread::sleep(Duration::from_secs(1));
+
+        // File::create(output)?;
+
+        Ok(())
+    }
+
+    pub fn jpeg_file_from_pdn(
+        &self,
+        input: impl AsRef<Path>,
+        output: impl AsRef<Path>,
+        quality: u8,
     ) -> eyre::Result<()> {
         thread::sleep(Duration::from_secs(1));
 

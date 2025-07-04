@@ -4,12 +4,19 @@ edition = "2024"
 
 [dependencies]
 eyre.workspace = true
-rfd.workspace = true
 thiserror.workspace = true
-pdn-conv = { path = "../shared" }
-iced = { git = "https://github.com/iced-rs/iced.git", features = ["tokio", "sipper", "advanced", "svg"] }
+rfd = "0.15"
+walkdir = "2"
 tokio = { version = "1", features = ["sync", "rt"] }
-walkdir = "2.5.0"
+
+iced = { git = "https://github.com/iced-rs/iced.git", features = ["tokio", "sipper", "advanced", "svg"] }
+pdn-conv = { path = "../shared" }
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.60", features = ["Win32_UI_WindowsAndMessaging", "Win32_System_LibraryLoader"] }
+
+[build-dependencies]
+embed-resource = "3"
 
 [features]
 pdn-sys = ["pdn-conv/pdn-sys"]

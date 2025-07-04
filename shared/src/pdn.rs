@@ -9,7 +9,6 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use color_eyre::eyre;
 use netcorehost::{
     error::HostingError,
     hostfxr::{GetManagedFunctionError, ManagedFunction},
@@ -24,7 +23,9 @@ pub struct PdnHoster {
     // How do the functions still work work if the context has closed?
     // #[allow(dead_code)]
     // context: HostfxrContext<InitializedForCommandLine>,
-    pdn_to_ora: ManagedFunction<unsafe extern "system" fn(*const PdnToOraIO) -> *mut c_char>,
+    ora: ManagedFunction<unsafe extern "system" fn(*const PdnToImageIO) -> *mut c_char>,
+    png: ManagedFunction<unsafe extern "system" fn(*const PdnToImageIO) -> *mut c_char>,
+    jpeg: ManagedFunction<unsafe extern "system" fn(*const JpegIO) -> *mut c_char>,
 }
 
 impl Debug for PdnHoster {
@@ -34,9 +35,32 @@ impl Debug for PdnHoster {
 }
 
 #[repr(C)]
-struct PdnToOraIO {
+struct PdnToImageIO {
     input: RawHandle,
     output: RawHandle,
+}
+
+#[repr(C)]
+struct JpegIO {
+    quality: i64,
+    io: PdnToImageIO,
+}
+
+impl PdnToImageIO {
+    pub fn new(input: &Path, output: &Path) -> io::Result<Self> {
+        let input = fs::File::open(input)?;
+        let output = fs::File::options()
+            .read(true)
+            .write(true)
+            .create(true)
+            .truncate(true)
+            .open(output)?;
+
+        Ok(PdnToImageIO {
+            input: input.into_raw_handle(),
+            output: output.into_raw_handle(),
+        })
+    }
 }
 
 #[repr(C)]
@@ -133,12 +157,30 @@ impl PdnHoster {
 
         let pdn_to_ora = context
             .get_delegate_loader()?
-            .get_function_with_unmanaged_callers_only::<unsafe fn(*const PdnToOraIO) -> *mut c_char>(
+            .get_function_with_unmanaged_callers_only::<unsafe fn(*const PdnToImageIO) -> *mut c_char>(
                 pdcstr!("PdnBridge.Library, PdnBridge"),
                 pdcstr!("PdnToOra"),
             )?;
 
-        Ok(Self { pdn_to_ora })
+        let png_to_ora = context
+            .get_delegate_loader()?
+            .get_function_with_unmanaged_callers_only::<unsafe fn(*const PdnToImageIO) -> *mut c_char>(
+                pdcstr!("PdnBridge.Library, PdnBridge"),
+                pdcstr!("PdnToPng"),
+            )?;
+
+        let jpeg_to_ora = context
+            .get_delegate_loader()?
+            .get_function_with_unmanaged_callers_only::<unsafe fn(*const JpegIO) -> *mut c_char>(
+                pdcstr!("PdnBridge.Library, PdnBridge"),
+                pdcstr!("PdnToJpeg"),
+            )?;
+
+        Ok(Self {
+            ora: pdn_to_ora,
+            png: png_to_ora,
+            jpeg: jpeg_to_ora,
+        })
     }
 
     pub fn ora_file_from_pdn(
@@ -146,33 +188,52 @@ impl PdnHoster {
         input: impl AsRef<Path>,
         output: impl AsRef<Path>,
     ) -> eyre::Result<()> {
-        let input = fs::File::open(input)?;
-        let output = fs::File::options()
-            .read(true)
-            .write(true)
-            .create(true)
-            .truncate(true)
-            .open(output)?;
+        let io = PdnToImageIO::new(input.as_ref(), output.as_ref())?;
+        call_converter(&self.ora, io)
+    }
 
-        let handles = PdnToOraIO {
-            input: input.into_raw_handle(),
-            output: output.into_raw_handle(),
+    pub fn png_file_from_pdn(
+        &self,
+        input: impl AsRef<Path>,
+        output: impl AsRef<Path>,
+    ) -> eyre::Result<()> {
+        let io = PdnToImageIO::new(input.as_ref(), output.as_ref())?;
+        call_converter(&self.png, io)
+    }
+
+    pub fn jpeg_file_from_pdn(
+        &self,
+        input: impl AsRef<Path>,
+        output: impl AsRef<Path>,
+        quality: u8,
+    ) -> eyre::Result<()> {
+        let data = JpegIO {
+            quality: quality.into(),
+            io: PdnToImageIO::new(input.as_ref(), output.as_ref())?,
         };
 
-        let args = (&handles) as *const PdnToOraIO;
-
-        // SAFETY: the C# side should ensure that these handles will be closed
-        // We are also making sure we won't drop these ourselves later
-        let error = unsafe { (*self.pdn_to_ora)(args) };
-
-        if !error.is_null() {
-            // SAFETY: This should be only getting created by our own allocator
-            let error = unsafe { CString::from_raw(error) };
-            eyre::bail!("Exception caught in C# code: {}", error.to_string_lossy());
-        }
-
-        Ok(())
+        call_converter(&self.jpeg, data)
     }
+}
+
+fn call_converter<T: 'static>(
+    fun: &ManagedFunction<unsafe extern "system" fn(*const T) -> *mut c_char>,
+    value: T,
+) -> eyre::Result<()> {
+    let args = (&value) as *const T;
+
+    // SAFETY: the C# side should ensure that things like file handles will be closed
+    // We are also making sure we won't drop these ourselves later
+    let error = unsafe { fun(args) };
+    drop(value);
+
+    if !error.is_null() {
+        // SAFETY: This should be only getting created by our own allocator
+        let error = unsafe { CString::from_raw(error) };
+        eyre::bail!("Exception caught in C# code: {}", error.to_string_lossy());
+    }
+
+    Ok(())
 }
 
 unsafe extern "system" fn copy_to_c_string(ptr: *const u16, length: i32) -> *mut c_char {

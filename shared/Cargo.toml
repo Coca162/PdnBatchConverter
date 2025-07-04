@@ -3,7 +3,7 @@ name = "pdn-conv"
 edition = "2024"
 
 [dependencies]
-color-eyre.workspace = true
+eyre.workspace = true
 thiserror.workspace = true
 directories = "6.0"
 toml_edit = { version = "0.22.26" }

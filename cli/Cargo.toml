@@ -3,9 +3,10 @@ name = "PdnBatchConverter-Cli"
 edition = "2024"
 
 [dependencies]
+color-eyre = "0.6"
+rayon = "1"
+
 clap = { version = "4.5.31", features = ["derive"] }
-color-eyre = "0.6.3"
-rayon = "1.10.0"
 pdn-conv = {path = "../shared"}
 
 [features]

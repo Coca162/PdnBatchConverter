@@ -9,11 +9,27 @@
   </PropertyGroup>
   <ItemGroup>
     <SupportedPlatform Include="windows" />
+    <Reference Include="PaintDotNet.Core">
+      <Private>false</Private>
+      <HintPath>C:\Program Files\Paint.NET\PaintDotNet.Core.dll</HintPath>
+    </Reference>
     <Reference Include="PaintDotNet.Data">
       <Private>false</Private>
       <HintPath>C:\Program Files\Paint.NET\PaintDotNet.Data.dll</HintPath>
     </Reference>
+    <Reference Include="PaintDotNet.Primitives">
+      <Private>false</Private>
+      <HintPath>C:\Program Files\Paint.NET\PaintDotNet.Primitives.dll</HintPath>
+    </Reference>
+    <Reference Include="PaintDotNet.ComponentModel">
+      <Private>false</Private>
+      <HintPath>C:\Program Files\Paint.NET\PaintDotNet.ComponentModel.dll</HintPath>
+    </Reference>
 
     <ProjectReference Include="../openraster/OpenRaster Filetype.csproj" />
+
+    <PackageReference Include="System.Drawing.Common" Version="9.0.6">
+      <ExcludeAssets>runtime</ExcludeAssets>
+    </PackageReference>
   </ItemGroup>
 </Project>

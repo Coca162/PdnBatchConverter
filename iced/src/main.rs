@@ -1,5 +1,6 @@
 #![windows_subsystem = "windows"]
 
+use core::fmt;
 use std::{
     collections::{BTreeMap, HashMap},
     convert::identity,
@@ -25,8 +26,8 @@ use iced::{
     widget::{
         Button, Column, Container, MouseArea, Row, Scrollable, Stack, Svg, Text, button, checkbox,
         container::{self, background},
-        row, scrollable, svg,
-        text::{self, Rich, Span},
+        row, scrollable, slider, svg,
+        text::{self, IntoFragment, Rich, Span},
         tooltip,
     },
     window::{self, Position, Settings},
@@ -114,6 +115,7 @@ struct SetupState {
 struct MainState {
     id: window::Id,
     files: BTreeMap<Arc<Path>, FileState>,
+    format: ConversionFormat,
     hoster_state: State,
     cancel_conversion: Option<Arc<AtomicBool>>,
     in_progress: Vec<Arc<Path>>,
@@ -121,6 +123,25 @@ struct MainState {
     done: Vec<Arc<Path>>,
     recursive_folders: bool,
     dialog_windows: HashMap<window::Id, DialogTypes>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum ConversionFormat {
+    Ora,
+    Png,
+    Jpeg(u8),
+}
+
+impl fmt::Display for ConversionFormat {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let name = match self {
+            ConversionFormat::Ora => "ora",
+            ConversionFormat::Png => "png",
+            ConversionFormat::Jpeg(_) => "jpeg",
+        };
+
+        f.write_str(name)
+    }
 }
 
 struct FileState {
@@ -180,6 +201,8 @@ enum Message {
     ConversionDone,
     CloseDialog(window::Id),
     SetParallelism(NonZeroUsize),
+    SetFormat(ConversionFormat),
+    SetQuality(u8),
     HoverEvent(Arc<Path>, bool),
     ToggleFileError(Arc<Path>),
     WindowEvents(window::Id, window::Event),
@@ -196,6 +219,7 @@ impl OraConverterGui {
             id,
             files: BTreeMap::new(),
             hoster_state,
+            format: ConversionFormat::Ora,
             cancel_conversion: None,
             recursive_folders: false,
             done: Vec::new(),
@@ -203,7 +227,34 @@ impl OraConverterGui {
             in_progress: Vec::new(),
             dialog_windows: HashMap::new(),
         };
-        (Self::MainWindow(state), t.discard())
+
+        let task = t.discard();
+        #[cfg(windows)]
+        let task = task
+            .chain(window::run_with_handle(id, |h| {
+                use windows_sys::Win32::{System::LibraryLoader, UI::WindowsAndMessaging};
+                let window::raw_window_handle::RawWindowHandle::Win32(h) = h.as_raw() else {
+                    unreachable!("UHhh")
+                };
+                let hwnd = h.hwnd.get() as *mut core::ffi::c_void;
+                let icon = unsafe {
+                    WindowsAndMessaging::LoadIconW(
+                        LibraryLoader::GetModuleHandleW(std::ptr::null_mut()),
+                        1 as *mut u16,
+                    )
+                };
+                unsafe {
+                    WindowsAndMessaging::SendMessageW(
+                        hwnd,
+                        WindowsAndMessaging::WM_SETICON,
+                        1,
+                        icon as isize,
+                    )
+                };
+            }))
+            .discard();
+
+        (Self::MainWindow(state), task)
     }
 
     fn update(&mut self, message: Message) -> Task<Message> {
@@ -313,7 +364,7 @@ impl OraConverterGui {
                 }
             }
             Message::RemoveFile(file) => {
-                state.files.remove(&file);
+                state.files.remove(dbg!(&file));
 
                 if let Some((_, s)) = state.files.range_mut(file..).next() {
                     s.hovered = true;
@@ -333,6 +384,7 @@ impl OraConverterGui {
                 state.done = Vec::new();
 
                 let output: Arc<Path> = output.path().into();
+                let format = state.format;
                 let cancel_conversion = Arc::new(AtomicBool::new(false));
                 let hoster = state.hoster_state.pdn_hoster().clone();
                 let parallelism = state.hoster_state.parallelism();
@@ -357,12 +409,28 @@ impl OraConverterGui {
                                     .await;
 
                                 let output = output.join(&name).with_extension("ora");
+                                let output = match format {
+                                    ConversionFormat::Ora => output.with_extension("ora"),
+                                    ConversionFormat::Png => output.with_extension("png"),
+                                    ConversionFormat::Jpeg(_) => output.with_extension("jpeg"),
+                                };
                                 let has_parent = name.parent().is_some();
                                 let result = tokio::task::spawn_blocking(move || {
                                     if let Some(parent) = output.parent().filter(|_| has_parent) {
                                         create_dir_all(parent)?;
                                     }
-                                    hoster.ora_file_from_pdn(&path, &output)
+
+                                    match format {
+                                        ConversionFormat::Ora => {
+                                            hoster.ora_file_from_pdn(&path, &output)
+                                        }
+                                        ConversionFormat::Png => {
+                                            hoster.png_file_from_pdn(&path, &output)
+                                        }
+                                        ConversionFormat::Jpeg(q) => {
+                                            hoster.jpeg_file_from_pdn(&path, &output, q)
+                                        }
+                                    }
                                 })
                                 .await
                                 .map_err(eyre::Report::new)
@@ -432,6 +500,12 @@ impl OraConverterGui {
             Message::SetParallelism(new) => {
                 if let Err(error) = state.hoster_state.set_parallelism(new) {
                     return state.dialog_window(DialogTypes::GenericError(error));
+                }
+            }
+            Message::SetFormat(f) => state.format = f,
+            Message::SetQuality(q) => {
+                if let ConversionFormat::Jpeg(x) = &mut state.format {
+                    *x = q;
                 }
             }
             Message::HoverEvent(path, hovered_new) => {
@@ -634,12 +708,11 @@ impl OraConverterGui {
                         }))
                         .push(
                             Container::new(
-                                Svg::new(icons::CHECK.clone())
-                                    .height(22)
-                                    .width(22)
-                                    .style(move |t: &Theme, _| svg::Style {
+                                Svg::new(icons::CHECK.clone()).height(22).width(22).style(
+                                    move |t: &Theme, _| svg::Style {
                                         color: Some(t.extended_palette().success.strong.color),
-                                    }),
+                                    },
+                                ),
                             )
                             .padding(Padding::ZERO.left(2).right(12)),
                         )
@@ -662,6 +735,19 @@ impl OraConverterGui {
             tooltip_element("Sets how many files are converted at once"),
             tooltip::Position::Top,
         );
+
+        let slider = if let ConversionFormat::Jpeg(q) = state.format {
+            Some(
+                Container::new(tooltip(
+                    slider(0..=100, q, Message::SetQuality),
+                    tooltip_element(q.to_string()),
+                    tooltip::Position::Bottom,
+                ))
+                .padding(Padding::ZERO.right(15).left(15)),
+            )
+        } else {
+            None
+        };
 
         let working = state.cancel_conversion.is_some();
         let rest = Column::with_children([
@@ -692,6 +778,21 @@ impl OraConverterGui {
             .spacing(8)
             .into(),
             picklist.into(),
+            Row::new()
+                .push(pick_list(
+                    [
+                        ConversionFormat::Ora,
+                        ConversionFormat::Png,
+                        ConversionFormat::Jpeg(95),
+                    ],
+                    Some(state.format),
+                    Message::SetFormat,
+                ))
+                .push_maybe(slider)
+                .align_y(Vertical::Center)
+                .into(),
+        ])
+        .push(
             Container::new(
                 Text::new(VERSION)
                     .color(Color::from_rgb8(128, 128, 128))
@@ -699,9 +800,8 @@ impl OraConverterGui {
             )
             .align_bottom(Length::Fill)
             .align_right(Length::Fill)
-            .padding(Padding::ZERO.right(9))
-            .into(),
-        ])
+            .padding(Padding::ZERO.right(9)),
+        )
         .spacing(8)
         .width(Length::Fixed(310.))
         .padding(Padding::ZERO.top(8).bottom(8));
@@ -737,8 +837,8 @@ impl OraConverterGui {
     }
 }
 
-fn tooltip_element(text: &str) -> Container<'_, Message> {
-    Container::new(text)
+fn tooltip_element<'a>(text: impl IntoFragment<'a>) -> Container<'a, Message> {
+    Container::new(Text::new(text))
         .padding(Padding::new(4.0))
         .style(|t: &Theme| background(Background::Color(t.palette().background)))
 }
@@ -758,7 +858,7 @@ where
     Scrollable::with_direction(
         file.padding(Padding::ZERO.left(8).right(35))
             .align_y(Vertical::Center),
-        Direction::Horizontal(Scrollbar::new().scroller_width(30.)),
+        Direction::Horizontal(Scrollbar::new().scroller_width(0.)),
     )
     .height(30.)
     .width(Length::Fill)
