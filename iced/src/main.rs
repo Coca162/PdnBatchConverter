@@ -705,7 +705,7 @@ impl OraConverterGui {
             Some(
                 Container::new(tooltip(
                     slider(0..=100, quality, Message::SetQuality),
-                    tooltip_element(quality.to_string()),
+                    tooltip_element(format!("Quality: {quality}")),
                     tooltip::Position::Bottom,
                 ))
                 .padding(Padding::ZERO.right(15).left(15)),
