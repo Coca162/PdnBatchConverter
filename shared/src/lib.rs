@@ -1,3 +1,5 @@
+use core::fmt;
+
 #[cfg(not(all(windows, feature = "pdn-sys")))]
 pub use self::mock_pdn::{HosterError, MockPdnHoster as PdnHoster};
 #[cfg(all(windows, feature = "pdn-sys"))]
@@ -27,3 +29,26 @@ const VERSION_NAME: Option<&str> = match option_env!("VERSION_NAME") {
 };
 
 const COMMIT_SHORT_SHA: Option<&str> = option_env!("GITHUB_SHA");
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum ConversionFormat {
+    Jpeg { quality: u8 },
+    Png,
+    Ora,
+}
+
+impl ConversionFormat {
+    pub fn ext(self) -> &'static str {
+        match self {
+            ConversionFormat::Ora => "ora",
+            ConversionFormat::Png => "png",
+            ConversionFormat::Jpeg { .. } => "jpeg",
+        }
+    }
+}
+
+impl fmt::Display for ConversionFormat {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.ext())
+    }
+}

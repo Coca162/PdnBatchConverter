@@ -6,6 +6,8 @@ use std::{
     time::Duration,
 };
 
+use crate::ConversionFormat;
+
 #[derive(Debug)]
 pub struct MockPdnHoster;
 
@@ -15,39 +17,19 @@ impl MockPdnHoster {
         Ok(Self)
     }
 
-    pub fn ora_file_from_pdn(
+    pub fn file_from_pdn(
         &self,
-        input: impl AsRef<Path>,
-        output: impl AsRef<Path>,
+        format: ConversionFormat,
+        input: &Path,
+        output: &Path,
     ) -> eyre::Result<()> {
         thread::sleep(Duration::from_secs(1));
 
-        // File::create(output)?;
-
-        Ok(())
-    }
-
-    pub fn png_file_from_pdn(
-        &self,
-        input: impl AsRef<Path>,
-        output: impl AsRef<Path>,
-    ) -> eyre::Result<()> {
-        thread::sleep(Duration::from_secs(1));
-
-        // File::create(output)?;
-
-        Ok(())
-    }
-
-    pub fn jpeg_file_from_pdn(
-        &self,
-        input: impl AsRef<Path>,
-        output: impl AsRef<Path>,
-        quality: u8,
-    ) -> eyre::Result<()> {
-        thread::sleep(Duration::from_secs(1));
-
-        // File::create(output)?;
+        // match format {
+        //     ConversionFormat::Jpeg { .. } => std::fs::File::create(output.with_extension(".jpeg"))?,
+        //     ConversionFormat::Png => std::fs::File::create(output.with_extension(".png"))?,
+        //     ConversionFormat::Ora => std::fs::File::create(output.with_extension(".ora"))?,
+        // };
 
         Ok(())
     }

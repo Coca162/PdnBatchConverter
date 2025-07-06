@@ -1,6 +1,5 @@
 #![windows_subsystem = "windows"]
 
-use core::fmt;
 use std::{
     collections::{BTreeMap, HashMap},
     convert::identity,
@@ -43,7 +42,7 @@ use rfd::FileHandle;
 
 use dialog::Dialog;
 use folder_error::{FolderSearchError, SelectFolderErrors};
-use pdn_conv::{DEFAULT_LOCATION, State, StateInitError, VERSION};
+use pdn_conv::{ConversionFormat, DEFAULT_LOCATION, State, StateInitError, VERSION};
 
 mod dialog;
 mod folder_error;
@@ -123,25 +122,6 @@ struct MainState {
     done: Vec<Arc<Path>>,
     recursive_folders: bool,
     dialog_windows: HashMap<window::Id, DialogTypes>,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub enum ConversionFormat {
-    Ora,
-    Png,
-    Jpeg(u8),
-}
-
-impl fmt::Display for ConversionFormat {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let name = match self {
-            ConversionFormat::Ora => "ora",
-            ConversionFormat::Png => "png",
-            ConversionFormat::Jpeg(_) => "jpeg",
-        };
-
-        f.write_str(name)
-    }
 }
 
 struct FileState {
@@ -408,29 +388,14 @@ impl OraConverterGui {
                                     .send(Message::FileConverionStarted(name.clone()))
                                     .await;
 
-                                let output = output.join(&name).with_extension("ora");
-                                let output = match format {
-                                    ConversionFormat::Ora => output.with_extension("ora"),
-                                    ConversionFormat::Png => output.with_extension("png"),
-                                    ConversionFormat::Jpeg(_) => output.with_extension("jpeg"),
-                                };
+                                let output = output.join(&name).with_extension(format.ext());
                                 let has_parent = name.parent().is_some();
                                 let result = tokio::task::spawn_blocking(move || {
                                     if let Some(parent) = output.parent().filter(|_| has_parent) {
                                         create_dir_all(parent)?;
                                     }
 
-                                    match format {
-                                        ConversionFormat::Ora => {
-                                            hoster.ora_file_from_pdn(&path, &output)
-                                        }
-                                        ConversionFormat::Png => {
-                                            hoster.png_file_from_pdn(&path, &output)
-                                        }
-                                        ConversionFormat::Jpeg(q) => {
-                                            hoster.jpeg_file_from_pdn(&path, &output, q)
-                                        }
-                                    }
+                                    hoster.file_from_pdn(format, &path, &output)
                                 })
                                 .await
                                 .map_err(eyre::Report::new)
@@ -504,8 +469,8 @@ impl OraConverterGui {
             }
             Message::SetFormat(f) => state.format = f,
             Message::SetQuality(q) => {
-                if let ConversionFormat::Jpeg(x) = &mut state.format {
-                    *x = q;
+                if let ConversionFormat::Jpeg { quality } = &mut state.format {
+                    *quality = q;
                 }
             }
             Message::HoverEvent(path, hovered_new) => {
@@ -736,11 +701,11 @@ impl OraConverterGui {
             tooltip::Position::Top,
         );
 
-        let slider = if let ConversionFormat::Jpeg(q) = state.format {
+        let slider = if let ConversionFormat::Jpeg { quality } = state.format {
             Some(
                 Container::new(tooltip(
-                    slider(0..=100, q, Message::SetQuality),
-                    tooltip_element(q.to_string()),
+                    slider(0..=100, quality, Message::SetQuality),
+                    tooltip_element(quality.to_string()),
                     tooltip::Position::Bottom,
                 ))
                 .padding(Padding::ZERO.right(15).left(15)),
@@ -783,7 +748,7 @@ impl OraConverterGui {
                     [
                         ConversionFormat::Ora,
                         ConversionFormat::Png,
-                        ConversionFormat::Jpeg(95),
+                        ConversionFormat::Jpeg { quality: 95 },
                     ],
                     Some(state.format),
                     Message::SetFormat,

@@ -18,6 +18,8 @@ use netcorehost::{
 };
 use std::os::windows::io::RawHandle;
 
+use crate::ConversionFormat;
+
 pub struct PdnHoster {
     // Doesn't need to be kept for some reason
     // How do the functions still work work if the context has closed?
@@ -183,36 +185,24 @@ impl PdnHoster {
         })
     }
 
-    pub fn ora_file_from_pdn(
+    pub fn file_from_pdn(
         &self,
-        input: impl AsRef<Path>,
-        output: impl AsRef<Path>,
+        format: ConversionFormat,
+        input: &Path,
+        output: &Path,
     ) -> eyre::Result<()> {
         let io = PdnToImageIO::new(input.as_ref(), output.as_ref())?;
-        call_converter(&self.ora, io)
-    }
-
-    pub fn png_file_from_pdn(
-        &self,
-        input: impl AsRef<Path>,
-        output: impl AsRef<Path>,
-    ) -> eyre::Result<()> {
-        let io = PdnToImageIO::new(input.as_ref(), output.as_ref())?;
-        call_converter(&self.png, io)
-    }
-
-    pub fn jpeg_file_from_pdn(
-        &self,
-        input: impl AsRef<Path>,
-        output: impl AsRef<Path>,
-        quality: u8,
-    ) -> eyre::Result<()> {
-        let data = JpegIO {
-            quality: quality.into(),
-            io: PdnToImageIO::new(input.as_ref(), output.as_ref())?,
-        };
-
-        call_converter(&self.jpeg, data)
+        match format {
+            ConversionFormat::Jpeg { quality } => call_converter(
+                &self.jpeg,
+                JpegIO {
+                    quality: quality.into(),
+                    io: PdnToImageIO::new(input.as_ref(), output.as_ref())?,
+                },
+            ),
+            ConversionFormat::Png => call_converter(&self.png, io),
+            ConversionFormat::Ora => call_converter(&self.ora, io),
+        }
     }
 }
 
