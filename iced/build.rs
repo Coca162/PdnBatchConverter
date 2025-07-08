@@ -10,7 +10,8 @@ fn main() -> io::Result<()> {
         return Ok(());
     }
 
-    let manifest_dir = PathBuf::from(env::var_os("CARGO_MANIFEST_DIR").unwrap());
+    let mut manifest_dir = PathBuf::from(env::var_os("CARGO_MANIFEST_DIR").unwrap());
+    manifest_dir.pop();
     let out_dir = PathBuf::from(env::var_os("OUT_DIR").unwrap());
     copy(manifest_dir.join("icon.ico"), out_dir.join("icon.ico")).unwrap();
     write(out_dir.join("icon.rc"), "1 ICON icon.ico").unwrap();
