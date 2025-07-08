@@ -12,29 +12,31 @@ on:
 
 jobs:
   build:
-    runs-on: windows-2025
+    strategy:
+      matrix:
+        os: [windows-2025, windows-11-arm]
+    runs-on: ${{ matrix.os }}
     steps:
     - name: Checkout
       uses: actions/checkout@v4
       with:
         fetch-depth: 0
 
-    - name: Get Latest Paint.net Version
-      id: show-pdn
+    - name: Fetch Latest Paint.NET Release
+      id: latest-pdn
+      shell: pwsh
       run: |
-        $raw = winget show -s "winget" -e --id=dotPDN.PaintDotNet
-        echo $raw
-        $parsed = $raw | Select-String -Pattern '(?<=Version: ).*'
-        $version = $parsed.Matches.Value
-        echo $version
-        echo "PDN_VERSION=$version" >> $env:GITHUB_OUTPUT
+          $LatestRelease = Invoke-RestMethod -Uri 'https://api.github.com/repos/paintdotnet/release/releases' | Select-Object -First 1
+          echo "PDN_VERSION=$($LatestRelease.tag_name)" >> $env:GITHUB_OUTPUT
+          $DownloadUrl = $LatestRelease.assets.browser_download_url | Where-Object -FilterScript { $_.EndsWith(".winmsi.$('${{ runner.arch }}'.ToLower()).zip") } | Select-Object -First 1
+          echo "PDN_DOWNLOAD=$DownloadUrl" >> $env:GITHUB_OUTPUT
 
     - name: Cache Dotnet Libraries
       id: cache-dotnet
       uses: actions/cache@v4
       with:
         path: shared/libs
-        key: ${{ hashFiles('shared/bridge', 'shared/openraster') }}-${{ steps.show-pdn.outputs.PDN_VERSION }}-dotnet906
+        key: ${{ hashFiles('shared/bridge', 'shared/openraster') }}-${{ steps.latest-pdn.outputs.PDN_VERSION }}-${{ matrix.os }}
 
     - name: Set dotnet skip
       run: echo "SKIP_DOTNET_BUILDING=${{ steps.cache-dotnet.outputs.cache-hit }}" >> $env:GITHUB_ENV
@@ -49,14 +51,19 @@ jobs:
       if: steps.cache-dotnet.outputs.cache-hit != 'true'
       shell: pwsh
       run: |
-        $NetHost = Get-ChildItem -Path "C:\Program Files\dotnet\packs\Microsoft.NETCore.App.Host.win-x64"-Recurse -Include libnethost.lib | Select FullName | Select-Object -Last 1;
+        $NetHost = Get-ChildItem -Path "C:\Program Files\dotnet\packs\Microsoft.NETCore.App.Host.win-$('${{ runner.arch }}'.ToLower())"-Recurse -Include libnethost.lib | Select FullName | Select-Object -Last 1;
         echo $NetHost
         New-Item -Type dir -Force shared\libs
         Copy-Item $NetHost.FullName -Destination "shared\libs\libnethost.lib"
 
     - name: Install Paint.NET
       if: steps.cache-dotnet.outputs.cache-hit != 'true'
-      run: winget install -h -s "winget" -e --id=dotPDN.PaintDotNet
+      shell: pwsh
+      run: |
+          Invoke-RestMethod -Uri '${{ steps.latest-pdn.outputs.PDN_DOWNLOAD }}' -OutFile "paintdotnet.zip"
+          Expand-Archive -Path paintdotnet.zip -DestinationPath .\
+          $InstallerName = (('${{ steps.latest-pdn.outputs.PDN_DOWNLOAD }}' -split '/' | Select-Object -Last 1) -replace ".zip",".msi")
+          Start-Process msiexec -ArgumentList "/i `"$InstallerName`"","/norestart" -Wait;
 
     - name: Copy over libnethost to netcorehost
       run: cp "shared/libs/libnethost.lib" "libnethost.lib"
@@ -77,5 +84,5 @@ jobs:
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: PdnBatchConverter-${{ github.sha }}
+        name: PdnBatchConverter-${{ runner.arch }}-${{ github.sha }}
         path: target\release\*.exe
