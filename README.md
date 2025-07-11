@@ -13,9 +13,9 @@ Supports conversions to both PNG and JPEG as well as layer export via OpenRaster
 ## Download
 
 - **Graphical user interface** (desktop app):
-  - 🟢 **[Stable release](https://github.com/Coca162/PdnBatchConverter/releases/latest)**: look for `PdnBatchConverter.*.exe`
+  - 🟢 **[Stable release](https://github.com/Coca162/PdnBatchConverter/releases/latest)**: look for `PdnBatchConverter-*.exe`
 - **Command-line interface** (terminal app):
-  - 🟢 **[Stable release](https://github.com/Coca162/PdnBatchConverter/releases/latest)**: look for `PdnBatchConverter-Cli.*.exe`
+  - 🟢 **[Stable release](https://github.com/Coca162/PdnBatchConverter/releases/latest)**: look for `PdnBatchConverter-Cli-*.exe`
 
 [CI builds](https://github.com/Coca162/PdnBatchConverter/actions/workflows/build.yml) are available for testing unreleased changes.
 
