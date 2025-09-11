@@ -10,6 +10,8 @@ It hooks into your installation of [Paint.NET](https://getpaint.net) to read the
 
 Supports conversions to both PNG and JPEG as well as layer export via OpenRaster. OpenRaster is a widely used image editing format in programs such as [Pinta](https://www.pinta-project.com) and [Krita](https://krita.org).
 
+![A screenshot of the PdnBatchConvert GUI](screenshot.png)
+
 ## Download
 
 - **Graphical user interface** (desktop app):
