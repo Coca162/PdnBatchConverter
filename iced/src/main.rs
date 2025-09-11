@@ -191,8 +191,8 @@ enum Message {
 impl OraConverterGui {
     fn main_window(hoster_state: State) -> (Self, Task<Message>) {
         let (id, t) = window::open(Settings {
-            size: Size::new(700., 600.),
-            min_size: Some(Size::new(550., 300.)),
+            size: Size::new(650., 350.),
+            min_size: Some(Size::new(550., 250.)),
             ..Default::default()
         });
         let state = MainState {
