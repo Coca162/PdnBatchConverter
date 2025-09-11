@@ -605,7 +605,7 @@ impl OraConverterGui {
                             .interaction(Interaction::Pointer)
                             .on_press(Message::ToggleFileError(file.name.clone())),
                         )
-                        .push_maybe(file.opened.then(|| {
+                        .push(file.opened.then(|| {
                             Stack::new()
                                 .push(
                                     Container::new(
@@ -753,7 +753,7 @@ impl OraConverterGui {
                     Some(state.format),
                     Message::SetFormat,
                 ))
-                .push_maybe(slider)
+                .push(slider)
                 .align_y(Vertical::Center)
                 .into(),
         ])

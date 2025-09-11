@@ -25,15 +25,15 @@ impl Dialog {
             .height(Length::Fill),
             Container::new(
                 Row::with_capacity(2)
-                    .push_maybe(
+                    .push(
                         self.button_left
                             .map(|b| Container::new(b).align_left(Length::Fill)),
                     )
                     .push(
                         Container::new(
                             Row::with_capacity(2)
-                                .push_maybe(self.button_right_secondary)
-                                .push_maybe(self.button_right_most)
+                                .push(self.button_right_secondary)
+                                .push(self.button_right_most)
                                 .spacing(6),
                         )
                         .align_right(Length::Fill),
