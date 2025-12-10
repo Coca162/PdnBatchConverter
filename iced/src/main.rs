@@ -212,16 +212,16 @@ impl OraConverterGui {
         let task = t.discard();
         #[cfg(windows)]
         let task = task
-            .chain(window::run_with_handle(id, |h| {
+            .chain(window::run(id, |h| {
                 use windows_sys::Win32::{System::LibraryLoader, UI::WindowsAndMessaging};
-                let window::raw_window_handle::RawWindowHandle::Win32(h) = h.as_raw() else {
-                    unreachable!("UHhh")
+                let window::raw_window_handle::RawWindowHandle::Win32(h) = h.window_handle().expect("Windows should have a display handle").as_raw() else {
+                    unreachable!("Platform should be win32 only!")
                 };
                 let hwnd = h.hwnd.get() as *mut core::ffi::c_void;
                 let icon = unsafe {
                     WindowsAndMessaging::LoadIconW(
                         LibraryLoader::GetModuleHandleW(std::ptr::null_mut()),
-                        1 as *mut u16,
+                        1 as windows_sys::core::PCWSTR,
                     )
                 };
                 unsafe {
@@ -746,7 +746,8 @@ impl OraConverterGui {
                     .on_press_maybe(working.not().then_some(Message::OpenFolderDialog))
                     .into(),
                 tooltip(
-                    checkbox("Recursive", state.recursive_folders)
+                    checkbox(state.recursive_folders)
+                        .label("Recursive")
                         .on_toggle(Message::ToggledRecursion),
                     tooltip_element("Adds all folders in the selected folder"),
                     tooltip::Position::Bottom,
@@ -855,7 +856,7 @@ where
             background: None,
             border: Border::default(),
             scroller: Scroller {
-                color: Color::TRANSPARENT,
+                background: Background::Color(Color::TRANSPARENT),
                 border: Border::default(),
             },
         },
