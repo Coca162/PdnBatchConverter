@@ -42,7 +42,7 @@ use rfd::FileHandle;
 
 use dialog::Dialog;
 use folder_error::{FolderSearchError, SelectFolderErrors};
-use pdn_conv::{ConversionFormat, DEFAULT_LOCATION, State, StateInitError, VERSION};
+use pdn_conv::{ConversionFormat, DEFAULT_PDN_DIR, State, StateInitError, VERSION};
 
 mod dialog;
 mod folder_error;
@@ -88,8 +88,9 @@ pub fn main() -> iced::Result {
             OraConverterGui::MainWindow(MainState { id, .. }) if *id == w_id => "PdnBatchConverter",
             OraConverterGui::MainWindow(MainState { dialog_windows, .. }) => {
                 match dialog_windows.get(&w_id) {
-                    Some(DialogTypes::GenericError(_)) => "Error",
-                    Some(DialogTypes::FolderAddingErrors(_)) => "Error",
+                    Some(DialogTypes::GenericError(_) | DialogTypes::FolderAddingErrors(_)) => {
+                        "Error"
+                    }
                     None => "What.",
                 }
             }
@@ -136,7 +137,7 @@ struct ErroredFile {
 }
 
 impl ErroredFile {
-    pub fn new(name: Arc<Path>, error: Arc<eyre::Report>) -> Self {
+    pub const fn new(name: Arc<Path>, error: Arc<eyre::Report>) -> Self {
         Self {
             name,
             error,
@@ -146,7 +147,7 @@ impl ErroredFile {
 }
 
 impl FileState {
-    pub fn new(name: Arc<Path>) -> Self {
+    pub const fn new(name: Arc<Path>) -> Self {
         Self {
             name,
             hovered: false,
@@ -237,6 +238,7 @@ impl OraConverterGui {
         (Self::MainWindow(state), task)
     }
 
+    #[allow(clippy::too_many_lines)]
     fn update(&mut self, message: Message) -> Task<Message> {
         let state = match self {
             Self::MainWindow(state) => state,
@@ -246,7 +248,7 @@ impl OraConverterGui {
                         .chain(Task::perform(
                             rfd::AsyncFileDialog::new()
                                 .set_title("Select Paint.net Install")
-                                .set_directory(Path::new(DEFAULT_LOCATION).parent().unwrap())
+                                .set_directory(Path::new(DEFAULT_PDN_DIR))
                                 .pick_folder(),
                             Message::SelectPdn,
                         )),
@@ -306,7 +308,14 @@ impl OraConverterGui {
                     .extend(new.iter().map(FileHandle::path).map(|x| {
                         (
                             x.into(),
-                            FileState::new(Path::new(x.file_stem().unwrap()).into()),
+                            FileState::new(
+                                Path::new(
+                                    x.file_stem()
+                                        .or_else(|| x.file_name())
+                                        .expect("File path has no file part!"),
+                                )
+                                .into(),
+                            ),
                         )
                     }));
             }
@@ -318,7 +327,14 @@ impl OraConverterGui {
                     Ok(m) if m.is_file() && path.extension().is_some_and(|e| e == "pdn") => {
                         state.files.insert(
                             path.as_path().into(),
-                            FileState::new(Path::new(path.file_stem().unwrap()).into()),
+                            FileState::new(
+                                Path::new(
+                                    path.file_stem()
+                                        .or_else(|| path.file_name())
+                                        .expect("File path has no file part!"),
+                                )
+                                .into(),
+                            ),
                         );
                     }
                     Ok(_) => (),
@@ -339,7 +355,7 @@ impl OraConverterGui {
                     return Task::none();
                 }
 
-                if let Err(errors) = state.add_folder(folder) {
+                if let Err(errors) = state.add_folder(&folder) {
                     return state.dialog_window(DialogTypes::FolderAddingErrors(errors));
                 }
             }
@@ -348,7 +364,7 @@ impl OraConverterGui {
 
                 if let Some((_, s)) = state.files.range_mut(file..).next() {
                     s.hovered = true;
-                };
+                }
             }
             Message::SelectOutput => {
                 return Task::perform(
@@ -419,7 +435,7 @@ impl OraConverterGui {
             }
             Message::CancelConversion => {
                 if let Some(ref c) = state.cancel_conversion {
-                    c.store(true, Ordering::Release)
+                    c.store(true, Ordering::Release);
                 }
             }
             Message::FileConverionStarted(a) => {
@@ -428,9 +444,14 @@ impl OraConverterGui {
             Message::FileConverted(path, result) => {
                 let get_pos = |p| Arc::ptr_eq(p, &path);
 
-                state
-                    .in_progress
-                    .remove(state.in_progress.iter().position(get_pos).unwrap());
+                if let Some(idx) = state.in_progress.iter().position(get_pos) {
+                    state.in_progress.remove(idx);
+                } else {
+                    println!(
+                        "{} was not in in_progres when it should have been! It had a result of {result:?}.",
+                        path.display()
+                    );
+                }
 
                 if let Err(error) = result {
                     state.errored.push(ErroredFile::new(path, error));
@@ -493,10 +514,11 @@ impl OraConverterGui {
         Task::none()
     }
 
+    #[allow(clippy::too_many_lines)]
     fn view(&self, id: window::Id) -> Element<'_, Message> {
         let state = match self {
-            OraConverterGui::MainWindow(state) => state,
-            OraConverterGui::SetupIssue(setup) => return setup.view(),
+            Self::MainWindow(state) => state,
+            Self::SetupIssue(setup) => return setup.view(),
         };
 
         if state.id != id {
@@ -772,10 +794,10 @@ impl OraConverterGui {
         .padding(Padding::ZERO.top(8).bottom(8));
 
         let mut row = Row::new();
-        let filelist = if !state.files.is_empty() {
-            filelist
-        } else {
+        let filelist = if state.files.is_empty() {
             output
+        } else {
+            filelist
         };
         row = row.push(scrollable(filelist).style(|t: &Theme, s| {
             let default =
@@ -794,6 +816,7 @@ impl OraConverterGui {
         row.spacing(8.0).into()
     }
 
+    #[allow(clippy::unused_self)]
     fn subscription(&self) -> Subscription<Message> {
         Subscription::batch([
             window::close_events().map(Message::WindowClosed),
@@ -817,8 +840,7 @@ fn file_text(file: &Path) -> Text<'_> {
 
 fn file_scrollarea<F>(file: Container<'_, Message>, styling: F) -> Scrollable<'_, Message>
 where
-    F: Fn(&Theme) -> container::Style,
-    F: 'static,
+    F: Fn(&Theme) -> container::Style + 'static,
 {
     Scrollable::with_direction(
         file.padding(Padding::ZERO.left(8).right(35))
@@ -856,45 +878,12 @@ impl MainState {
         task.discard()
     }
 
-    pub fn add_folder(&mut self, folder: FileHandle) -> Result<(), SelectFolderErrors> {
+    pub fn add_folder(&mut self, folder: &FileHandle) -> Result<(), SelectFolderErrors> {
         let same_components = folder.path().iter().count();
 
         let mut result = Ok(());
 
-        if !self.recursive_folders {
-            let mut i = 0;
-
-            for res in read_dir(folder.path())? {
-                i += 1;
-                if i == MAX_FILE_SEARCH {
-                    return Err(FolderSearchError::TooLong.into());
-                }
-
-                let entry = match res.and_then(|x| {
-                    let r = x.metadata();
-                    r.map(|m| (x, m.is_file()))
-                }) {
-                    Ok((entry, true)) => entry,
-                    Ok((_, false)) => continue,
-                    Err(error) => {
-                        result = SelectFolderErrors::result_accumulate(result, error.into());
-                        continue;
-                    }
-                };
-
-                let path = entry.path();
-
-                if path.extension().is_none_or(|x| x != "pdn") {
-                    continue;
-                }
-
-                let mut short_form = PathBuf::from(entry.file_name());
-
-                short_form.set_extension("");
-                self.files
-                    .insert(path.into(), FileState::new(short_form.into()));
-            }
-        } else {
+        if self.recursive_folders {
             let mut i = 0;
 
             for res in walkdir::WalkDir::new(folder.path()).sort_by_file_name() {
@@ -928,7 +917,40 @@ impl MainState {
                 self.files
                     .insert(entry.into_path().into(), FileState::new(short_form.into()));
             }
-        };
+        } else {
+            let mut i = 0;
+
+            for res in read_dir(folder.path())? {
+                i += 1;
+                if i == MAX_FILE_SEARCH {
+                    return Err(FolderSearchError::TooLong.into());
+                }
+
+                let entry = match res.and_then(|x| {
+                    let r = x.metadata();
+                    r.map(|m| (x, m.is_file()))
+                }) {
+                    Ok((entry, true)) => entry,
+                    Ok((_, false)) => continue,
+                    Err(error) => {
+                        result = SelectFolderErrors::result_accumulate(result, error.into());
+                        continue;
+                    }
+                };
+
+                let path = entry.path();
+
+                if path.extension().is_none_or(|x| x != "pdn") {
+                    continue;
+                }
+
+                let mut short_form = PathBuf::from(entry.file_name());
+
+                short_form.set_extension("");
+                self.files
+                    .insert(path.into(), FileState::new(short_form.into()));
+            }
+        }
 
         result
     }
@@ -963,12 +985,13 @@ impl SetupState {
 fn eyre_to_text(report: &eyre::Report) -> String {
     let mut output = String::new();
 
-    write!(&mut output, "{report}").unwrap();
+    write!(&mut output, "{report}").expect("Writing to string should mostly not fail");
 
     if let Some(cause) = report.source() {
         output.push_str("\n\nError stack:\n");
         for (i, error) in std::iter::successors(Some(cause), |&e| e.source()).enumerate() {
-            writeln!(&mut output, "{i}: {error}").unwrap();
+            writeln!(&mut output, "{i}: {error}")
+                .expect("Writing to string should mostly not fail");
         }
     }
 

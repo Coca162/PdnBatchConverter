@@ -8,10 +8,12 @@ use std::{
     thread,
 };
 
-use crate::{DEFAULT_LOCATION, HosterError, PdnHoster};
+use crate::{DEFAULT_PDN_DLL, HosterError, PdnHoster};
 use directories::ProjectDirs;
 use eyre::{Context, OptionExt};
 use toml_edit::DocumentMut;
+
+const CONFIG_FILE: &str = "config.toml";
 
 #[derive(Debug)]
 pub struct State {
@@ -26,19 +28,19 @@ impl State {
             Ok(Some(s)) => return Ok(s),
             Ok(None) => (),
             Err(e) => return Err(e.into()),
-        };
+        }
 
         eprintln!("Attempting to use system paint.net installation...");
-        if Path::new(DEFAULT_LOCATION).exists().not() {
+        if Path::new(DEFAULT_PDN_DLL).exists().not() {
             return Err(StateInitError::DefaultNotFound);
         }
 
-        Self::from_pdn_location(Path::new(DEFAULT_LOCATION))
+        Self::from_pdn_location(Path::new(DEFAULT_PDN_DLL))
             .map_err(StateInitError::DefaultInitError)
     }
 
     pub fn from_config() -> Result<Option<Self>, ConfigError> {
-        let config_file = match fs::read_to_string(get_config_path()?) {
+        let config_file = match fs::read_to_string(get_config_dir()?.join(CONFIG_FILE)) {
             Ok(f) => f,
             Err(e) if e.kind() == io::ErrorKind::NotFound => return Ok(None),
             Err(e) => return Err(e.into()),
@@ -58,7 +60,8 @@ impl State {
             hoster: Arc::new(PdnHoster::new(pdn_location.into()).map_err(|e| {
                 ConfigError::CreationError(e, pdn_location.replace('\\', "\\\u{200B}"))
             })?),
-            parallelism: parse_parallelism(&doc)?.unwrap_or(default_parallelism(total_parallelism)),
+            parallelism: parse_parallelism(&doc)?
+                .unwrap_or_else(|| default_parallelism(total_parallelism)),
             total_parallelism,
         }))
     }
@@ -66,7 +69,8 @@ impl State {
     pub fn from_pdn_location(path: &Path) -> eyre::Result<Self> {
         let pdn = Arc::new(PdnHoster::new(path.to_path_buf())?);
 
-        let config_path = get_config_path()?;
+        let config_dir = get_config_dir()?;
+        let config_path = config_dir.join(CONFIG_FILE);
         let mut doc = get_or_create_config(&config_path)?;
 
         doc.insert(
@@ -76,35 +80,39 @@ impl State {
                 .into(),
         );
 
-        fs::create_dir_all(config_path.parent().expect("Config to have a parent!"))?;
+        fs::create_dir_all(&config_dir)?;
 
         File::create(config_path)?.write_fmt(format_args!("{doc}"))?;
 
         let total_parallelism = thread::available_parallelism()?;
         Ok(Self {
             hoster: pdn,
-            parallelism: parse_parallelism(&doc)?.unwrap_or(default_parallelism(total_parallelism)),
+            parallelism: parse_parallelism(&doc)?
+                .unwrap_or_else(|| default_parallelism(total_parallelism)),
             total_parallelism,
         })
     }
 
-    pub fn pdn_hoster(&self) -> &Arc<PdnHoster> {
+    #[must_use]
+    pub const fn pdn_hoster(&self) -> &Arc<PdnHoster> {
         &self.hoster
     }
 
-    pub fn max_parallelism(&self) -> NonZeroUsize {
+    #[must_use]
+    pub const fn max_parallelism(&self) -> NonZeroUsize {
         // SAFETY: ceiled divides are guaranteed to be non-zero
         unsafe { NonZero::new_unchecked(self.total_parallelism.get().div_ceil(3)) }
     }
 
-    pub fn parallelism(&self) -> NonZeroUsize {
+    #[must_use]
+    pub const fn parallelism(&self) -> NonZeroUsize {
         self.parallelism
     }
 
     pub fn set_parallelism(&mut self, new: NonZeroUsize) -> eyre::Result<()> {
         self.parallelism = new;
 
-        let config_path = get_config_path()?;
+        let config_path = get_config_dir()?.join(CONFIG_FILE);
         let mut doc = get_or_create_config(&config_path)?;
 
         doc.insert(
@@ -129,13 +137,14 @@ fn get_or_create_config(path: &Path) -> Result<DocumentMut, eyre::Error> {
     Ok(doc)
 }
 
-fn get_config_path() -> Result<PathBuf, eyre::Error> {
+fn get_config_dir() -> Result<PathBuf, eyre::Error> {
     let proj_dirs = ProjectDirs::from("", "", "PdnBatchConverter")
         .ok_or_eyre("Could not find where OS stores application's configs.")?;
-    Ok(proj_dirs.config_dir().join("config.toml"))
+    Ok(proj_dirs.config_dir().to_path_buf())
 }
 
-pub fn default_parallelism(parallelism: NonZeroUsize) -> NonZeroUsize {
+#[must_use]
+pub const fn default_parallelism(parallelism: NonZeroUsize) -> NonZeroUsize {
     // We assume each paint.net export uses roughly 6 threads
     // SAFETY: ceiled divides are guaranteed to be non-zero
     unsafe { NonZero::new_unchecked(parallelism.get().div_ceil(6)) }

@@ -13,3 +13,6 @@ netcorehost = { version = "0.18.0", default-features = false, features = ["net8_
 
 [features]
 pdn-sys = ["dep:netcorehost"]
+
+[lints]
+workspace = true

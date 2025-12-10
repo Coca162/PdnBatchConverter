@@ -15,7 +15,8 @@ mod pdn;
 pub use self::state::*;
 mod state;
 
-pub const DEFAULT_LOCATION: &str = r#"C:\Program Files\Paint.NET\paintdotnet.dll"#;
+pub const DEFAULT_PDN_DIR: &str = r"C:\Program Files\Paint.NET";
+pub const DEFAULT_PDN_DLL: &str = r"C:\Program Files\Paint.NET\paintdotnet.dll";
 
 pub const VERSION: &str = match (COMMIT_SHORT_SHA, VERSION_NAME) {
     (_, Some(version)) => version,
@@ -30,7 +31,7 @@ const VERSION_NAME: Option<&str> = match option_env!("VERSION_NAME") {
 
 const COMMIT_SHORT_SHA: Option<&str> = option_env!("GITHUB_SHA");
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ConversionFormat {
     Jpeg { quality: u8 },
     Png,
@@ -38,11 +39,12 @@ pub enum ConversionFormat {
 }
 
 impl ConversionFormat {
-    pub fn ext(self) -> &'static str {
+    #[must_use]
+    pub const fn ext(self) -> &'static str {
         match self {
-            ConversionFormat::Ora => "ora",
-            ConversionFormat::Png => "png",
-            ConversionFormat::Jpeg { .. } => "jpeg",
+            Self::Ora => "ora",
+            Self::Png => "png",
+            Self::Jpeg { .. } => "jpeg",
         }
     }
 }

@@ -20,3 +20,6 @@ embed-resource = "3"
 
 [features]
 pdn-sys = ["pdn-conv/pdn-sys"]
+
+[lints]
+workspace = true

@@ -58,7 +58,7 @@ impl PdnToImageIO {
             .truncate(true)
             .open(output)?;
 
-        Ok(PdnToImageIO {
+        Ok(Self {
             input: input.into_raw_handle(),
             output: output.into_raw_handle(),
         })
@@ -107,7 +107,7 @@ impl PdnHoster {
         while let Some(entry) = dir.next().transpose()? {
             let path = entry.path();
             if path.extension().is_some_and(|e| e == "dll") {
-                context.load_assembly_from_path(PdCString::from_os_str(path.as_os_str())?)?
+                context.load_assembly_from_path(PdCString::from_os_str(path.as_os_str())?)?;
             }
         }
 
@@ -145,7 +145,7 @@ impl PdnHoster {
             .split_once('"')
             .ok_or(HosterError::DepParser)?
             .0
-            .split(".")
+            .split('.')
             .chain(iter::repeat("-1"))
             .map(|x| x.parse::<i32>().map_err(|_| HosterError::DepParser));
         let version = Version {
@@ -155,7 +155,7 @@ impl PdnHoster {
             revision: version_iter.next().ok_or(HosterError::DepParser)??,
         };
 
-        set_pdn_version((&version) as *const Version);
+        set_pdn_version(&raw const version);
 
         let pdn_to_ora = context
             .get_delegate_loader()?
@@ -191,13 +191,13 @@ impl PdnHoster {
         input: &Path,
         output: &Path,
     ) -> eyre::Result<()> {
-        let io = PdnToImageIO::new(input.as_ref(), output.as_ref())?;
+        let io = PdnToImageIO::new(input, output)?;
         match format {
             ConversionFormat::Jpeg { quality } => call_converter(
                 &self.jpeg,
                 JpegIO {
                     quality: quality.into(),
-                    io: PdnToImageIO::new(input.as_ref(), output.as_ref())?,
+                    io: PdnToImageIO::new(input, output)?,
                 },
             ),
             ConversionFormat::Png => call_converter(&self.png, io),
@@ -210,7 +210,7 @@ fn call_converter<T: 'static>(
     fun: &ManagedFunction<unsafe extern "system" fn(*const T) -> *mut c_char>,
     value: T,
 ) -> eyre::Result<()> {
-    let args = (&value) as *const T;
+    let args = &raw const value;
 
     // SAFETY: the C# side should ensure that things like file handles will be closed
     // We are also making sure we won't drop these ourselves later
@@ -227,13 +227,14 @@ fn call_converter<T: 'static>(
 }
 
 unsafe extern "system" fn copy_to_c_string(ptr: *const u16, length: i32) -> *mut c_char {
-    let wide_chars = unsafe { slice::from_raw_parts(ptr, length as usize) };
+    // SAFETY: This should only be called with a length from String.Length, which is only a Int32 for complaince or something
+    let length = unsafe { length.try_into().unwrap_unchecked() };
+
+    let wide_chars = unsafe { slice::from_raw_parts(ptr, length) };
     let string = String::from_utf16_lossy(wide_chars);
-    let c_string = match CString::new(string) {
-        Ok(c_string) => c_string,
-        Err(_) => return std::ptr::null_mut(),
-    };
-    c_string.into_raw()
+    CString::new(string)
+        .map(CString::into_raw)
+        .unwrap_or(core::ptr::null_mut())
 }
 
 #[derive(Debug, thiserror::Error)]

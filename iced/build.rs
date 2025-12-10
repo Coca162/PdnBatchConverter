@@ -1,13 +1,14 @@
+#![allow(clippy::unwrap_used)]
+
 use std::{
     env,
     fs::{copy, write},
-    io,
     path::PathBuf,
 };
 
-fn main() -> io::Result<()> {
+fn main() {
     if env::var_os("CARGO_CFG_WINDOWS").is_none() {
-        return Ok(());
+        return;
     }
 
     let mut manifest_dir = PathBuf::from(env::var_os("CARGO_MANIFEST_DIR").unwrap());
@@ -20,6 +21,4 @@ fn main() -> io::Result<()> {
     embed_resource::compile(out_dir.join("icon.rc"), embed_resource::NONE)
         .manifest_optional()
         .unwrap();
-
-    Ok(())
 }

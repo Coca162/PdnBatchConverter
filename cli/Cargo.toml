@@ -11,3 +11,6 @@ pdn-conv = {path = "../shared"}
 
 [features]
 pdn-sys = ["pdn-conv/pdn-sys"]
+
+[lints]
+workspace = true

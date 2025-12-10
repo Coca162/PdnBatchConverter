@@ -1,3 +1,5 @@
+#![allow(clippy::pedantic, clippy::nursery)]
+
 use std::{
     error::Error,
     fmt::Display,

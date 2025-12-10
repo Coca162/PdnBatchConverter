@@ -1,3 +1,5 @@
+#![allow(clippy::unwrap_used)]
+
 use std::env;
 use std::path::PathBuf;
 use std::process::Command;
@@ -7,10 +9,6 @@ fn main() {
 
     if !cfg!(feature = "pdn-sys") {
         return;
-    }
-
-    if env::var_os("CARGO_CFG_WINDOWS").is_none() {
-        println!("cargo::error=You cannot use Paint.net on non-windows targets")
     }
 
     match env::var("SKIP_DOTNET_BUILDING") {
@@ -23,6 +21,10 @@ fn main() {
         }
         Ok(_) | Err(env::VarError::NotPresent) => (),
         Err(e) => panic!("{e}"),
+    }
+
+    if env::var_os("CARGO_CFG_WINDOWS").is_none() {
+        println!("cargo::error=You cannot use Paint.net on non-windows targets");
     }
 
     println!("cargo:rerun-if-changed=bridge/libs");

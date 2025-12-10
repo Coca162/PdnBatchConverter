@@ -6,6 +6,15 @@ members = ["cli", "iced", "shared"]
 eyre = "0.6"
 thiserror = "2"
 
+[workspace.lints.clippy]
+pedantic = { level = "warn", priority = -1 }
+missing_errors_doc = "allow"
+nursery = { level = "warn", priority = -1 }
+unnecessary_struct_initialization = "allow"
+branches_sharing_code = "allow"
+
+unwrap_used = "warn" 
+
 [profile.dev]
 opt-level = 1
 

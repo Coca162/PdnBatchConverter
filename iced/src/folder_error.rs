@@ -66,7 +66,8 @@ impl SelectFolderErrors {
             Self::Multiple(e) => {
                 let mut output = String::from("Multiple errors from searching found:");
                 for e in e {
-                    write!(&mut output, "\n- {e}").unwrap();
+                    write!(&mut output, "\n- {e}")
+                        .expect("Writing to string should mostly not fail");
                 }
                 output
             }
