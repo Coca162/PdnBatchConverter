@@ -22,7 +22,7 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [windows-2025, windows-11-arm]
+        os: [windows-2025]
     runs-on: ${{ matrix.os }}
     steps:
     - name: Checkout
@@ -93,4 +93,4 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: PdnBatchConverter-${{ runner.arch }}-${{ github.sha }}
-        path: target\release\*.exe
+        path: target\debug\*.exe
