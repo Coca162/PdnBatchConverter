@@ -11,6 +11,11 @@ fn main() {
         return;
     }
 
+    println!("cargo:rerun-if-changed=build.rs");
+    println!("cargo:rerun-if-changed=bridge/libs");
+    println!("cargo:rerun-if-changed=bridge/Library.cs");
+    println!("cargo:rerun-if-changed=bridge/PdnBridge.csproj");
+
     match env::var("SKIP_DOTNET_BUILDING") {
         Ok(x)
             if x.eq_ignore_ascii_case("yes")
@@ -23,13 +28,17 @@ fn main() {
         Err(e) => panic!("{e}"),
     }
 
-    if env::var_os("CARGO_CFG_WINDOWS").is_none() {
-        println!("cargo::error=You cannot use Paint.net on non-windows targets");
-    }
-
-    println!("cargo:rerun-if-changed=bridge/libs");
-    println!("cargo:rerun-if-changed=bridge/Library.cs");
-    println!("cargo:rerun-if-changed=bridge/PdnBridge.csproj");
+    let os = match env::var("CARGO_CFG_TARGET_OS").unwrap().as_str() {
+        "linux" => "linux",
+        "macos" => "osx",
+        "windows" => "win",
+        _ => {
+            println!(
+                "cargo::error=Your target currently is not built for paint.net interop functionality!"
+            );
+            unreachable!();
+        }
+    };
 
     let mut dotnet_source_dir = PathBuf::from(env::var_os("CARGO_MANIFEST_DIR").unwrap());
     dotnet_source_dir.push("bridge");
@@ -42,7 +51,7 @@ fn main() {
         .arg("-c")
         .arg("Release")
         .arg("--os")
-        .arg("win");
+        .arg(os);
 
     let mut out = dotnet_source_dir;
     out.pop();

@@ -1,16 +1,17 @@
 use core::fmt;
 
-#[cfg(not(all(windows, feature = "pdn-sys")))]
+#[cfg(not(feature = "pdn-sys"))]
 pub use self::mock_pdn::{HosterError, MockPdnHoster as PdnHoster};
 #[cfg(all(windows, feature = "pdn-sys"))]
 pub use self::pdn::{HosterError, PdnHoster};
-
-#[cfg(all(not(windows), feature = "pdn-sys"))]
-compile_error!("Paint.net cannot be run on non-windows targets");
+#[cfg(all(unix, feature = "pdn-sys"))]
+pub use self::pdn_unix::{HosterError, PdnHoster};
 
 mod mock_pdn;
 #[cfg(all(windows, feature = "pdn-sys"))]
 mod pdn;
+#[cfg(all(unix, feature = "pdn-sys"))]
+mod pdn_unix;
 
 pub use self::state::*;
 mod state;

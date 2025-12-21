@@ -3,7 +3,7 @@ use std::{
     ffi::{CString, c_char},
     fmt::{self, Debug},
     fs, io, iter,
-    os::windows::io::IntoRawHandle,
+    os::unix::io::IntoRawFd,
     path::{Path, PathBuf},
 };
 
@@ -14,7 +14,7 @@ use netcorehost::{
     pdcstr,
     pdcstring::{ContainsNul, PdCString},
 };
-use std::os::windows::io::RawHandle;
+use std::os::unix::io::RawFd;
 
 use crate::ConversionFormat;
 
@@ -36,8 +36,8 @@ impl Debug for PdnHoster {
 
 #[repr(C)]
 struct PdnToImageIO {
-    input: RawHandle,
-    output: RawHandle,
+    input: RawFd,
+    output: RawFd,
 }
 
 #[repr(C)]
@@ -57,8 +57,8 @@ impl PdnToImageIO {
             .open(output)?;
 
         Ok(Self {
-            input: input.into_raw_handle(),
-            output: output.into_raw_handle(),
+            input: input.into_raw_fd(),
+            output: output.into_raw_fd(),
         })
     }
 }
@@ -79,7 +79,7 @@ impl PdnHoster {
         // let context = hostfxr.initialize_for_dotnet_command_line(app_path)?;
 
         let context = hostfxr.initialize_for_runtime_config(pdcstr!(
-            r"C:\users\coca\Desktop\rust-coding\PdnBatchConverter\shared\libs\PdnBridge.runtimeconfig.json"
+            r"C:\users\coca\rust-coding\PdnBatchConverter\shared\libs\PdnBridge.runtimeconfig.json"
         ))?;
 
         let needed = [
