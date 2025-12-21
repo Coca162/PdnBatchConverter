@@ -85,7 +85,7 @@ jobs:
         prefix-key: "v1-rust"
 
     - name: Build
-      run: cargo build -F pdn-sys
+      run: cargo build -F pdn-sys --bin PdnBatchConverter-Cli
       env:
         VERSION_NAME: ${{ inputs.version }}
 
