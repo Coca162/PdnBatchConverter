@@ -82,6 +82,8 @@ impl PdnHoster {
             r"C:\users\coca\Desktop\rust-coding\PdnBatchConverter\shared\libs\PdnBridge.runtimeconfig.json"
         ))?;
 
+        println!("Start loading paintdotnet dlls");
+
         let needed = [
             "PaintDotNet.Base.dll",
             "PaintDotNet.Core.dll",
@@ -94,6 +96,7 @@ impl PdnHoster {
         let mut dll_path = paintdotnet_dll;
         dll_path.pop();
         for name in needed {
+            println!("Loading {name}");
             dll_path.push(name);
             context.load_assembly_from_path(PdCString::from_os_str(&dll_path)?)?;
             dll_path.pop();
@@ -108,6 +111,8 @@ impl PdnHoster {
         };
 
         if !fs::exists(&ora_dll)? {
+            println!("Loading OpenRasterFileType");
+
             context.load_assembly_from_bytes(
                 include_bytes!("../libs/OpenRasterFileType.pdb"),
                 include_bytes!("../libs/OpenRasterFileType.dll"),
@@ -129,6 +134,7 @@ impl PdnHoster {
             }
         }
 
+        println!("Loading PdnBridge");
         context.load_assembly_from_bytes(
             include_bytes!("../libs/PdnBridge.dll"),
             include_bytes!("../libs/PdnBridge.pdb"),
@@ -195,6 +201,8 @@ impl PdnHoster {
                 pdcstr!("PdnBridge.Library, PdnBridge"),
                 pdcstr!("PdnToJpeg"),
             )?;
+
+        println!("Finished setup");
 
         Ok(Self {
             ora: pdn_to_ora,

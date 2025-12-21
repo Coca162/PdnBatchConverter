@@ -60,6 +60,8 @@ fn main() -> eyre::Result<()> {
                 .num_threads(state.parallelism().get())
                 .build_global()?;
 
+            println!("Starting to loop over pdns in parrell");
+
             input.into_par_iter().try_for_each_with(
                 (output, state.pdn_hoster().clone()),
                 |(output, state), input| -> eyre::Result<()> {
