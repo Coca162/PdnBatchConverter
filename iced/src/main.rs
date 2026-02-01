@@ -214,7 +214,11 @@ impl OraConverterGui {
         let task = task
             .chain(window::run(id, |h| {
                 use windows_sys::Win32::{System::LibraryLoader, UI::WindowsAndMessaging};
-                let window::raw_window_handle::RawWindowHandle::Win32(h) = h.window_handle().expect("Windows should have a display handle").as_raw() else {
+                let window::raw_window_handle::RawWindowHandle::Win32(h) = h
+                    .window_handle()
+                    .expect("Windows should have a display handle")
+                    .as_raw()
+                else {
                     unreachable!("Platform should be win32 only!")
                 };
                 let hwnd = h.hwnd.get() as *mut core::ffi::c_void;
