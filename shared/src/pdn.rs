@@ -146,8 +146,9 @@ impl PdnHoster {
             .ok_or(HosterError::DepParser)?
             .0
             .split('.')
-            .chain(iter::repeat("-1"))
-            .map(|x| x.parse::<i32>().map_err(|_| HosterError::DepParser));
+            .map(str::parse::<i32>)
+            .chain(iter::repeat(Ok(-1)))
+            .map(|r| r.map_err(|_| HosterError::DepParser));
         let version = Version {
             major: version_iter.next().ok_or(HosterError::DepParser)??,
             minor: version_iter.next().ok_or(HosterError::DepParser)??,
