@@ -227,15 +227,23 @@ fn call_converter<T: 'static>(
     Ok(())
 }
 
+// This is only really used for exceptions for now, name should probably be changed
 unsafe extern "system" fn copy_to_c_string(ptr: *const u16, length: i32) -> *mut c_char {
     // SAFETY: This should only be called with a length from String.Length, which is only a Int32 for complaince or something
     let length = unsafe { length.try_into().unwrap_unchecked() };
 
     let wide_chars = unsafe { slice::from_raw_parts(ptr, length) };
-    let string = String::from_utf16_lossy(wide_chars);
+    // I haven't seen a nul in errors but just in case
+    // Honestly this entire thing sucks but not using CString needs lots of work
+    let string = String::from_utf16_lossy(wide_chars).replace('\0', "\u{FFFD}");
+    // This should never fail but lets prevent the nasty edge case
     CString::new(string)
         .map(CString::into_raw)
-        .unwrap_or(core::ptr::null_mut())
+        .unwrap_or_else(|_| {
+            c"Found a nul where all should've been replaced in the string for a error"
+                .to_owned()
+                .into_raw()
+        })
 }
 
 #[derive(Debug, thiserror::Error)]
